@@ -1,14 +1,4 @@
-use wgpu_bootstrap::{
-    window::Window,
-    frame::Frame,
-    cgmath,
-    application::Application,
-    texture::create_texture_bind_group,
-    context::Context,
-    camera::Camera,
-    default::Vertex,
-    wgpu,
-};
+use wgpu_bootstrap::wgpu;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
