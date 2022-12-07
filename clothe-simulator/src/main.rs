@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use wgpu_bootstrap::{
     window::Window,
     frame::Frame,
@@ -16,6 +14,7 @@ use clothe_simulator::{
     clothe::Clothe,
 };
 
+const GRAVITY: f32 = 9.81;
 
 struct MyApp {
     diffuse_bind_group: wgpu::BindGroup,
@@ -23,7 +22,8 @@ struct MyApp {
     pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    indices: Vec<u16>
+    vertices: Vec<Node>,
+    indices: Vec<u16>,
 }
 
 impl MyApp {
@@ -33,7 +33,7 @@ impl MyApp {
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
     
         let camera = Camera {
-            eye: (0.0, 0.0, 2.0).into(),
+            eye: (6.0, 0.0, 2.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
@@ -43,7 +43,7 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let mut clothe = Clothe::new(1.0, 2, &[0.0, 0.0, 0.0]);
+        let clothe = Clothe::new(1.0, 2, &[0.0, 0.0, 0.0]);
 
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
@@ -65,6 +65,7 @@ impl MyApp {
             pipeline,
             vertex_buffer,
             index_buffer,
+            vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
         }
     }
@@ -88,6 +89,18 @@ impl Application for MyApp {
         frame.present();
 
         Ok(())
+    }
+
+    fn update(&mut self, context: &Context, delta_time: f32) {
+        // Update the Buffer that contains the delta_time
+        self.vertices.iter_mut().for_each(|vertex| {
+            vertex.velocity[2] += GRAVITY * delta_time;
+            vertex.position[0] += vertex.velocity[0] * delta_time;
+            vertex.position[1] += vertex.velocity[1] * delta_time;
+            vertex.position[2] += vertex.velocity[2] * delta_time;
+        });
+
+        context.update_buffer(&self.vertex_buffer, &self.vertices);
     }
 }
 

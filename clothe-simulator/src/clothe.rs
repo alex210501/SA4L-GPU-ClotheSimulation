@@ -28,7 +28,7 @@ impl Clothe {
     }
 
     fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
-        self.vertices.push(Node { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], velocity: [0.0, 0.0, 0.0] });
+        self.vertices.push(Node { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], velocity: [0.0, 0., 0.5] });
     }
 
     fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
