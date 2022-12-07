@@ -14,7 +14,8 @@ use clothe_simulator::{
     clothe::Clothe,
 };
 
-const GRAVITY: f32 = 9.81;
+const SPRING_CONSTANT: f32 = 1000.0;
+const GRAVITY: f32 = 1.0;
 
 struct MyApp {
     diffuse_bind_group: wgpu::BindGroup,
@@ -24,6 +25,8 @@ struct MyApp {
     index_buffer: wgpu::Buffer,
     vertices: Vec<Node>,
     indices: Vec<u16>,
+    springs: Vec<[u16; 2]>,
+    rest_distances: Vec<[f32; 3]>,
 }
 
 impl MyApp {
@@ -67,6 +70,8 @@ impl MyApp {
             index_buffer,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
+            springs: clothe.springs.clone(),
+            rest_distances: clothe.rest_distances.clone(),
         }
     }
 }
@@ -92,9 +97,33 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
+        self.springs.iter().zip(self.rest_distances.iter())
+            .for_each(|([i, j], distance)| {
+            let resultant: Vec<f32> = {
+                let vertex_1 = self.vertices.get(*i as usize).unwrap();
+                let vertex_2 = self.vertices.get(*j as usize).unwrap();
+                // let distance: f32 = vertex_1.position.iter().zip(vertex_2.position.iter())
+                //     .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
+
+                vertex_1.position.iter()
+                    .zip(vertex_2.position.iter())
+                    .zip(distance.iter())
+                    .map(|((&a, &b), &old)| (a - b + old)*SPRING_CONSTANT).collect()
+            };
+
+            let vertex_1 = self.vertices.get_mut(*i as usize).unwrap();
+
+            vertex_1.resultant[0] += resultant.get(0).unwrap();
+            vertex_1.resultant[1] += resultant.get(1).unwrap();
+            vertex_1.resultant[2] += resultant.get(2).unwrap();
+        });
+
         // Update the Buffer that contains the delta_time
         self.vertices.iter_mut().for_each(|vertex| {
-            vertex.velocity[2] += GRAVITY * delta_time;
+            vertex.velocity[0] += vertex.resultant[0] * delta_time / 30.;
+            vertex.velocity[1] += vertex.resultant[1] * delta_time / 30.;
+            vertex.velocity[2] += (vertex.resultant[2] / 30.0 + GRAVITY) * delta_time;
+
             vertex.position[0] += vertex.velocity[0] * delta_time;
             vertex.position[1] += vertex.velocity[1] * delta_time;
             vertex.position[2] += vertex.velocity[2] * delta_time;

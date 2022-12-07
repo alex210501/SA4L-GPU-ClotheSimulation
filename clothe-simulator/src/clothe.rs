@@ -1,4 +1,9 @@
+use wgpu_bootstrap::{
+    wgpu,
+    cgmath::{ self, prelude::* }
+};
 use crate::node::Node;
+
 pub struct Clothe {
     length: f32,
     number_square: u32,
@@ -7,7 +12,8 @@ pub struct Clothe {
     center_z: f32,
     pub vertices: Vec<Node>,
     pub indices: Vec<u16>,
-    springs: Vec<[u16; 2]>
+    pub springs: Vec<[u16; 2]>,
+    pub rest_distances: Vec<[f32; 3]>,
 }
 
 impl Clothe {
@@ -21,6 +27,7 @@ impl Clothe {
             center_y: center[1],
             center_z: center[2],
             springs: Vec::new(),
+            rest_distances: Vec::new(),
         };
 
         instance.construct_vertices();
@@ -28,12 +35,29 @@ impl Clothe {
     }
 
     fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
-        self.vertices.push(Node { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], velocity: [0.0, 0., 0.5] });
+        self.vertices.push(Node { 
+            position: [x, y, z], 
+            normal: [0.0, 0.0, 0.0], 
+            tangent: [0.0, 0.0, 0.0], 
+            tex_coords: [0.0, 0.0], 
+            velocity: [0.0, 0.0, 0.0], 
+            resultant: [0.0, 0.0, 0.0] 
+        });
     }
 
     fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
         self.add_vertex(x, y, z);
         self.vertices.len() as u16 - 1
+    }
+
+    fn add_distance(&mut self, i: u16, j: u16) {
+        let vertex_1 = self.vertices.get(i as usize).unwrap();
+        let vertex_2 = self.vertices.get(j as usize).unwrap();
+        let distances: Vec<f32> = vertex_1.position.iter()
+            .zip(vertex_2.position.iter())
+            .map(|(&a, &b)| b - a).collect();
+
+        self.rest_distances.push(distances.as_slice().try_into().unwrap());
     }
 
     fn construct_vertices(&mut self) {
@@ -66,21 +90,29 @@ impl Clothe {
                 if col > 0 {
                     self.springs.push([indice, indice - 1]); // Left
                     self.springs.push([indice, indice + rows as u16 - 1]); // Bottom left
+                    self.add_distance(indice, indice - 1);
+                    self.add_distance(indice, indice + rows as u16 - 1);
                 }
 
                 // Put the top neighboor
                 if row > 0 {
                     self.springs.push([indice, indice - rows as u16]); // Top
                     self.springs.push([indice, indice - rows as u16 + 1]); // Top Right
+                    self.add_distance(indice, indice - rows as u16);
+                    self.add_distance(indice, indice - rows as u16 + 1);
                 }
 
                 if row > 0 && col > 0 {
                     self.springs.push([indice, indice - rows as u16 - 1]); // Top left
+                    self.add_distance(indice, indice - rows as u16 - 1);
                 }
 
                 self.springs.push([indice, indice + 1]); // Right
                 self.springs.push([indice, indice + rows as u16]); // Bottom
                 self.springs.push([indice, indice + rows as u16 + 1]); // Bottom Right
+                self.add_distance(indice, indice + 1);
+                self.add_distance(indice, indice + rows as u16);
+                self.add_distance(indice, indice + rows as u16 + 1);
 
                 // Add indices
                 self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
@@ -91,5 +123,6 @@ impl Clothe {
         println!("vertices: {:?}", self.vertices);
         println!("indices: {:?}", self.indices);
         println!("springs: {:?}", self.springs);
+        println!("rest_distances: {:?}", self.rest_distances);
     }
 }

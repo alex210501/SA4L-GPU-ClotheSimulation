@@ -8,6 +8,7 @@ pub struct Node {
     pub tangent: [f32; 3],
     pub tex_coords: [f32; 2],
     pub velocity: [f32; 3],
+    pub resultant: [f32; 3],
 }
 
 impl Node {
@@ -39,6 +40,11 @@ impl Node {
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
                     shader_location: 4,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 15]>() as wgpu::BufferAddress,
+                    shader_location: 5,
                     format: wgpu::VertexFormat::Float32x3,
                 },
             ]
