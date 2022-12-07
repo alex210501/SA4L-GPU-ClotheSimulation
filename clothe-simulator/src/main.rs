@@ -12,17 +12,6 @@ use wgpu_bootstrap::{
     wgpu,
 };
 
-const VERTICES: &[Vertex] = &[
-    Vertex { position: [0.0, -0.0, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], },
-    Vertex { position: [1.0, -0.0, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0., 0.0], },
-    Vertex { position: [0.0, -1.0, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], },
-    Vertex { position: [1.0, -1.0, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], },
-    // Vertex { position: [0.35966998, -0.3473291, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.85967, 0.84732914], },
-    // Vertex { position: [0.44147372, 0.2347359, 0.0], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.9414737, 0.2652641], },
-];
-
-const INDICES: &[u16] = &[1, 0, 2, 1, 2, 3];
-
 struct FabricConstructor {
     length: f32,
     number_square: u32,
@@ -32,6 +21,7 @@ struct FabricConstructor {
     vertices: Vec<Vertex>,
     indices: Vec<u16>,
     indices_map: HashMap<String, u16>,
+    springs: Vec<[u16; 2]>
 }
 
 impl FabricConstructor {
@@ -45,6 +35,7 @@ impl FabricConstructor {
             center_x: center[0],
             center_y: center[1],
             center_z: center[2],
+            springs: Vec::new(),
         };
 
         instance.construct_vertices();
@@ -53,6 +44,12 @@ impl FabricConstructor {
 
     fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
         self.vertices.push(Vertex { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0] });
+    }
+
+    fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
+        self.add_vertex(x, y, z);
+        // self.indices.push(self.vertices.len() as u16 - 1);
+        self.vertices.len() as u16 - 1
     }
 
     fn get_indice_vertex_position(&mut self, x: f32, y: f32, z: f32) -> u16 {
@@ -70,27 +67,64 @@ impl FabricConstructor {
         }
     }
 
+    /* fn get_vertex_or_insert(&mut self, i: usize, x: f32, y: f32, z: f32) -> &Vertex {
+        match self.vertices.get(i) {
+            Some(vertex) => vertex,
+            None => {
+                let indice = self.insert_vertex(x, y, z);
+                self.indices.push(indice);
+                self.vertices.get(indice as usize).unwrap()
+            }
+        }
+    } */
+
     fn construct_vertices(&mut self) {
         let vertex_length = self.length / (self.number_square as f32);
         let offset_x = self.center_x - (self.length / 2.0);
         let offset_y = self.center_y - (self.length / 2.0);
+        let rows = self.number_square + 1;
+        let cols = self.number_square + 1;
 
-        (0..self.number_square).map(|x| x as f32).for_each(|row| {
-            (0..self.number_square).map(|x| x as f32).for_each(|col| {
-                let row_offset = row*vertex_length + offset_x;
-                let col_offset = col*vertex_length + offset_y;
-                let top_left = self.get_indice_vertex_position(row_offset, -col_offset, 0.0);
-                let top_right = self.get_indice_vertex_position(row_offset + vertex_length, -col_offset, 0.0);
-                let bottom_left = self.get_indice_vertex_position(row_offset, -(col_offset + vertex_length), 0.0);
-                let bottom_right = self.get_indice_vertex_position(row_offset + vertex_length, -(col_offset + vertex_length), 0.0);
+        // Create vertices
+        (0..rows).map(|x| x as f32).for_each(|y| {
+            (0..cols).map(|x| x as f32).for_each(|x| {
+                let row_offset = x*vertex_length + offset_x;
+                let col_offset = y*vertex_length + offset_y;
+
+                let _ = self.insert_vertex(row_offset, -col_offset, 0.0);
+            });
+        });
+
+        // Create triangle
+        (0..rows - 1).for_each(|row| {
+            (0..cols - 1).for_each(|col| {
+                let indice = (rows*row + col) as u16;
+                let top_left = indice;
+                let top_right = indice + 1;
+                let bottom_left = indice + rows as u16;
+                let bottom_right = indice + rows as u16 + 1;
 
                 self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices.extend_from_slice(&[top_right, bottom_left, bottom_right]);
+                println!("{} - {} {} {} {}", indice, top_left, top_right, bottom_left, bottom_right);
             });
         });
 
         println!("vertices: {:?}", self.vertices);
         println!("indices: {:?}", self.indices);
+    }
+
+    fn construct_spring(&mut self) {
+        let rows = self.number_square;
+        let cols = self.number_square;
+
+        (0..rows).for_each(|row| {
+            (0..cols).for_each(|col| {
+                if row > 0 {
+                    self.springs.push([0, 0]);
+                }
+            });
+        });
     }
 }
 
@@ -120,7 +154,7 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let mut fabric_constructor = FabricConstructor::new(1.0, 10, &[0.0, 0.0, 0.0]);
+        let mut fabric_constructor = FabricConstructor::new(1.0, 2, &[0.0, 0.0, 0.0]);
 
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
