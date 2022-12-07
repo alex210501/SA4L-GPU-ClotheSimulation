@@ -104,6 +104,27 @@ impl FabricConstructor {
                 let bottom_left = indice + rows as u16;
                 let bottom_right = indice + rows as u16 + 1;
 
+                // Put the left neighboor
+                if col > 0 {
+                    self.springs.push([indice, indice - 1]); // Left
+                    self.springs.push([indice, indice + rows as u16 - 1]); // Bottom left
+                }
+
+                // Put the top neighboor
+                if row > 0 {
+                    self.springs.push([indice, indice - rows as u16]); // Top
+                    self.springs.push([indice, indice - rows as u16 + 1]); // Top Right
+                }
+
+                if row > 0 && col > 0 {
+                    self.springs.push([indice, indice - rows as u16 - 1]); // Top left
+                }
+
+                self.springs.push([indice, indice + 1]); // Right
+                self.springs.push([indice, indice + rows as u16]); // Bottom
+                self.springs.push([indice, indice + rows as u16 + 1]); // Bottom Right
+
+                // Add indices
                 self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices.extend_from_slice(&[top_right, bottom_left, bottom_right]);
                 println!("{} - {} {} {} {}", indice, top_left, top_right, bottom_left, bottom_right);
@@ -112,6 +133,7 @@ impl FabricConstructor {
 
         println!("vertices: {:?}", self.vertices);
         println!("indices: {:?}", self.indices);
+        println!("springs: {:?}", self.springs);
     }
 
     fn construct_spring(&mut self) {
