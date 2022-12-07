@@ -48,35 +48,8 @@ impl FabricConstructor {
 
     fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
         self.add_vertex(x, y, z);
-        // self.indices.push(self.vertices.len() as u16 - 1);
         self.vertices.len() as u16 - 1
     }
-
-    fn get_indice_vertex_position(&mut self, x: f32, y: f32, z: f32) -> u16 {
-        let vertice_key = format!("{}-{}", x, y);
-
-        match self.indices_map.get(&vertice_key) {
-            Some(&indice) => indice,
-            None => {
-                let vertices_len = self.vertices.len() as u16;
-
-                self.indices_map.insert(vertice_key,  vertices_len);
-                self.add_vertex(x, y, z);
-                vertices_len
-            }
-        }
-    }
-
-    /* fn get_vertex_or_insert(&mut self, i: usize, x: f32, y: f32, z: f32) -> &Vertex {
-        match self.vertices.get(i) {
-            Some(vertex) => vertex,
-            None => {
-                let indice = self.insert_vertex(x, y, z);
-                self.indices.push(indice);
-                self.vertices.get(indice as usize).unwrap()
-            }
-        }
-    } */
 
     fn construct_vertices(&mut self) {
         let vertex_length = self.length / (self.number_square as f32);
@@ -127,26 +100,12 @@ impl FabricConstructor {
                 // Add indices
                 self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices.extend_from_slice(&[top_right, bottom_left, bottom_right]);
-                println!("{} - {} {} {} {}", indice, top_left, top_right, bottom_left, bottom_right);
             });
         });
 
         println!("vertices: {:?}", self.vertices);
         println!("indices: {:?}", self.indices);
         println!("springs: {:?}", self.springs);
-    }
-
-    fn construct_spring(&mut self) {
-        let rows = self.number_square;
-        let cols = self.number_square;
-
-        (0..rows).for_each(|row| {
-            (0..cols).for_each(|col| {
-                if row > 0 {
-                    self.springs.push([0, 0]);
-                }
-            });
-        });
     }
 }
 
