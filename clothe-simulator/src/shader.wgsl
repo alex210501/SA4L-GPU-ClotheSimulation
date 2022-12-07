@@ -12,6 +12,7 @@ struct VertexInput {
     @location(1) position: vec3<f32>,
     @location(2) position: vec3<f32>,
     @location(3) tex_coords: vec2<f32>,
+    @location(4) velocity: vec3<f32>,
 }
 
 struct VertexOutput {

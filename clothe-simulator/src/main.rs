@@ -12,13 +12,15 @@ use wgpu_bootstrap::{
     wgpu,
 };
 
+use clothe_simulator::node::Node;
+
 struct FabricConstructor {
     length: f32,
     number_square: u32,
     center_x: f32,
     center_y: f32,
     center_z: f32,
-    vertices: Vec<Vertex>,
+    vertices: Vec<Node>,
     indices: Vec<u16>,
     indices_map: HashMap<String, u16>,
     springs: Vec<[u16; 2]>
@@ -43,7 +45,7 @@ impl FabricConstructor {
     }
 
     fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
-        self.vertices.push(Vertex { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0] });
+        self.vertices.push(Node { position: [x, y, z], normal: [0.0, 0.0, 0.0], tangent: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0], velocity: [0.0, 0.0, 0.0] });
     }
 
     fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
@@ -140,7 +142,7 @@ impl MyApp {
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
             include_str!("shader.wgsl"),
-            &[Vertex::desc()],
+            &[Node::desc()],
             &[
                 &context.texture_bind_group_layout,
                 &context.camera_bind_group_layout,
