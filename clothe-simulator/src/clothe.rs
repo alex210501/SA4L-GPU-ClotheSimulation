@@ -73,7 +73,7 @@ impl Clothe {
                 let row_offset = x*vertex_length + offset_x;
                 let col_offset = y*vertex_length + offset_y;
 
-                let _ = self.insert_vertex(row_offset, -col_offset, 0.0);
+                let _ = self.insert_vertex(row_offset, -col_offset, self.center_z);
             });
         });
 

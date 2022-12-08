@@ -1,18 +1,17 @@
 use wgpu_bootstrap::{
-    window::Window,
-    frame::Frame,
-    cgmath,
     application::Application,
-    texture::create_texture_bind_group,
-    context::Context,
     camera::Camera,
+    cgmath,
+    context::Context,
+    default::{Particle, Vertex},
+    frame::Frame,
+    geometry::icosphere,
+    texture::create_texture_bind_group,
     wgpu,
+    window::Window,
 };
 
-use clothe_simulator::{
-    node::Node,
-    clothe::Clothe,
-};
+use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 1000.0;
 const GRAVITY: f32 = 1.0;
@@ -20,6 +19,10 @@ const GRAVITY: f32 = 1.0;
 struct MyApp {
     diffuse_bind_group: wgpu::BindGroup,
     camera_bind_group: wgpu::BindGroup,
+    sphere_pipeline: wgpu::RenderPipeline,
+    sphere_buffer: wgpu::Buffer,
+    sphere_index_buffer: wgpu::Buffer,
+    particle_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
@@ -31,22 +34,24 @@ struct MyApp {
 
 impl MyApp {
     fn new(context: &Context) -> Self {
-        let texture = context.create_srgb_texture("happy-tree.png", include_bytes!("happy-tree.png"));
-    
+        let texture =
+            context.create_srgb_texture("happy-tree.png", include_bytes!("happy-tree.png"));
+
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
-    
+
         let camera = Camera {
             eye: (6.0, 0.0, 2.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
-            fovy: 45.0,
+            fovy: 100.0,
             znear: 0.1,
             zfar: 100.0,
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let clothe = Clothe::new(1.0, 2, &[0.0, 0.0, 0.0]);
+        let clothe = Clothe::new(4.0, 2, &[0.0, 0.0, -10.0]);
+        let (vertices, indices) = icosphere(1);
 
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
@@ -58,14 +63,37 @@ impl MyApp {
             ],
             wgpu::PrimitiveTopology::TriangleList
         );
-    
+
+        let sphere_pipeline = context.create_render_pipeline(
+            "Render Pipeline",
+            include_str!("sphere_shader.wgsl"),
+            &[Vertex::desc(), Particle::desc()],
+            &[
+                &context.texture_bind_group_layout,
+                &context.camera_bind_group_layout,
+            ],
+            wgpu::PrimitiveTopology::TriangleList,
+        );
+
+        let particle = Particle {
+            position: [0.0, 0.0, 0.0],
+            velocity: [0.0, 0.0, 0.0],
+        };
+
         let vertex_buffer = context.create_buffer(&clothe.vertices, wgpu::BufferUsages::VERTEX);
         let index_buffer = context.create_buffer(&clothe.indices, wgpu::BufferUsages::INDEX);
-
+        let sphere_buffer = context.create_buffer(vertices.as_slice(), wgpu::BufferUsages::VERTEX);
+        let sphere_index_buffer =
+            context.create_buffer(indices.as_slice(), wgpu::BufferUsages::INDEX);
+        let particle_buffer = context.create_buffer(&[particle], wgpu::BufferUsages::VERTEX);
         Self {
             diffuse_bind_group,
             camera_bind_group,
             pipeline,
+            sphere_pipeline,
+            sphere_buffer,
+            sphere_index_buffer,
+            particle_buffer,
             vertex_buffer,
             index_buffer,
             vertices: clothe.vertices.clone(),
@@ -81,14 +109,30 @@ impl Application for MyApp {
         let mut frame = Frame::new(context)?;
 
         {
-            let mut render_pass = frame.begin_render_pass(wgpu::Color {r: 0.1, g: 0.2, b: 0.3, a: 1.0});
-            
+            let mut render_pass = frame.begin_render_pass(wgpu::Color {
+                r: 0.1,
+                g: 0.2,
+                b: 0.3,
+                a: 1.0,
+            });
+
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..(self.indices.len() as u32), 0, 0..1);
+
+            render_pass.set_pipeline(&self.sphere_pipeline);
+            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
+            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.sphere_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.particle_buffer.slice(..));
+            render_pass.set_index_buffer(
+                self.sphere_index_buffer.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            render_pass.draw_indexed(0..(icosphere(1).1.as_slice().len() as u32), 0, 0..1);
         }
 
         frame.present();
