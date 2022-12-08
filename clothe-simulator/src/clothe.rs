@@ -114,15 +114,36 @@ impl Clothe {
                 self.add_distance(indice, indice + rows as u16);
                 self.add_distance(indice, indice + rows as u16 + 1);
 
+                // Bend springs
+                if col > 1 {
+                    self.springs.push([indice, indice - 2]); // Left
+                    self.add_distance(indice, indice - 2);
+                }
+
+                if col < cols - 2 {
+                    self.springs.push([indice, indice + 2]); // Right
+                    self.add_distance(indice, indice + 2);
+                }
+
+                if row > 1 {
+                    self.springs.push([indice, indice - 2*rows as u16]); // Top
+                    self.add_distance(indice, indice - 2*rows as u16);
+                }
+
+                if row < rows - 2 {
+                    self.springs.push([indice, indice + 2*rows as u16]); // Bottom
+                    self.add_distance(indice, indice + 2*rows as u16);
+                }
+
                 // Add indices
                 self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices.extend_from_slice(&[top_right, bottom_left, bottom_right]);
             });
         });
 
-        // println!("vertices: {:?}", self.vertices);
-        // println!("indices: {:?}", self.indices);
-        // println!("springs: {:?}", self.springs);
-        // println!("rest_distances: {:?}", self.rest_distances);
+        // dbg!("vertices: {:?}", &self.vertices);
+        // dbg!("indices: {:?}", self.indices);
+        // dbg!("springs: {:?}", &self.springs);
+        // dbg!("rest_distances: {:?}", &self.rest_distances);
     }
 }

@@ -59,7 +59,7 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let clothe = Clothe::new(4.0, 100, &[0.0, 0.0, -10.0]);
+        let clothe = Clothe::new(4.0, 4, &[0.0, 0.0, -10.0]);
         let (vertices, indices) = icosphere(1);
         let sphere = Sphere {x: 0.0, y: 0.0, z: 0.0, radius: 1.0};
 
