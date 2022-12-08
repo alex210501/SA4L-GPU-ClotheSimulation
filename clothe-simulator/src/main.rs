@@ -163,7 +163,7 @@ impl Application for MyApp {
                 vertex_1.position.iter()
                     .zip(vertex_2.position.iter())
                     .zip(distance.iter())
-                    .map(|((&a, &b), &old)| -(b- a + old)*SPRING_CONSTANT).collect()
+                    .map(|((&a, &b), &old)| (b- a + old)*SPRING_CONSTANT).collect()
             };
 
             let vertex_1 = self.vertices.get_mut(*i as usize).unwrap();
@@ -186,7 +186,7 @@ impl Application for MyApp {
             } else {
                 vertex.velocity[0] += vertex.resultant[0] * delta_time / MASS;
                 vertex.velocity[1] += vertex.resultant[1] * delta_time / MASS;
-                vertex.velocity[2] += (vertex.resultant[2] / MASS + GRAVITY) * delta_time;
+                vertex.velocity[2] += (vertex.resultant[2] / MASS /*+ GRAVITY*/) * delta_time;
             }
 
             vertex.position[0] += vertex.velocity[0] * delta_time;
