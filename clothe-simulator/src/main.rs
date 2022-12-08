@@ -13,8 +13,16 @@ use wgpu_bootstrap::{
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
-const SPRING_CONSTANT: f32 = 1000.0;
-const GRAVITY: f32 = 1.0;
+const SPRING_CONSTANT: f32 = 1.0;
+const GRAVITY: f32 = 10.0;
+const MASS: f32 = 10.0;
+
+struct Sphere {
+    x: f32,
+    y: f32,
+    z: f32,
+    radius: f32,
+}
 
 struct MyApp {
     diffuse_bind_group: wgpu::BindGroup,
@@ -30,6 +38,7 @@ struct MyApp {
     indices: Vec<u16>,
     springs: Vec<[u16; 2]>,
     rest_distances: Vec<[f32; 3]>,
+    sphere: Sphere,
 }
 
 impl MyApp {
@@ -50,8 +59,9 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let clothe = Clothe::new(4.0, 2, &[0.0, 0.0, -10.0]);
+        let clothe = Clothe::new(4.0, 100, &[0.0, 0.0, -10.0]);
         let (vertices, indices) = icosphere(1);
+        let sphere = Sphere {x: 0.0, y: 0.0, z: 0.0, radius: 1.0};
 
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
@@ -76,7 +86,7 @@ impl MyApp {
         );
 
         let particle = Particle {
-            position: [0.0, 0.0, 0.0],
+            position: [sphere.x, sphere.y, sphere.z],
             velocity: [0.0, 0.0, 0.0],
         };
 
@@ -100,6 +110,7 @@ impl MyApp {
             indices: clothe.indices.clone(),
             springs: clothe.springs.clone(),
             rest_distances: clothe.rest_distances.clone(),
+            sphere,
         }
     }
 }
@@ -152,7 +163,7 @@ impl Application for MyApp {
                 vertex_1.position.iter()
                     .zip(vertex_2.position.iter())
                     .zip(distance.iter())
-                    .map(|((&a, &b), &old)| (a - b + old)*SPRING_CONSTANT).collect()
+                    .map(|((&a, &b), &old)| -(b- a + old)*SPRING_CONSTANT).collect()
             };
 
             let vertex_1 = self.vertices.get_mut(*i as usize).unwrap();
@@ -164,9 +175,19 @@ impl Application for MyApp {
 
         // Update the Buffer that contains the delta_time
         self.vertices.iter_mut().for_each(|vertex| {
-            vertex.velocity[0] += vertex.resultant[0] * delta_time / 30.;
-            vertex.velocity[1] += vertex.resultant[1] * delta_time / 30.;
-            vertex.velocity[2] += (vertex.resultant[2] / 30.0 + GRAVITY) * delta_time;
+            let sphere_position: [f32; 3] = [self.sphere.x, self.sphere.y, self.sphere.z];
+            let distance: f32 = vertex.position.iter().zip(sphere_position.iter())
+                .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
+            
+            if distance <= self.sphere.radius {
+                vertex.velocity[0] = 0.0;
+                vertex.velocity[1] = 0.0;
+                vertex.velocity[2] = 0.0;
+            } else {
+                vertex.velocity[0] += vertex.resultant[0] * delta_time / MASS;
+                vertex.velocity[1] += vertex.resultant[1] * delta_time / MASS;
+                vertex.velocity[2] += (vertex.resultant[2] / MASS + GRAVITY) * delta_time;
+            }
 
             vertex.position[0] += vertex.velocity[0] * delta_time;
             vertex.position[1] += vertex.velocity[1] * delta_time;

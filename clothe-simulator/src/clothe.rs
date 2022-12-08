@@ -120,9 +120,9 @@ impl Clothe {
             });
         });
 
-        println!("vertices: {:?}", self.vertices);
-        println!("indices: {:?}", self.indices);
-        println!("springs: {:?}", self.springs);
-        println!("rest_distances: {:?}", self.rest_distances);
+        // println!("vertices: {:?}", self.vertices);
+        // println!("indices: {:?}", self.indices);
+        // println!("springs: {:?}", self.springs);
+        // println!("rest_distances: {:?}", self.rest_distances);
     }
 }
