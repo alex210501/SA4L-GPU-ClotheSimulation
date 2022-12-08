@@ -40,7 +40,7 @@ impl Clothe {
             normal: [0.0, 0.0, 0.0],
             tangent: [0.0, 0.0, 0.0],
             tex_coords: [0.0, 0.0],
-            velocity: [0.0, 0.0, 0.0],
+            velocity: [0.0, 0.0, 0.5],
             resultant: [0.0, 0.0, 0.0],
         });
     }
@@ -97,8 +97,12 @@ impl Clothe {
 
                 // Complete the last row
                 if row == rows - 1 {
+                        // self.springs.push([indice, indice + 1]); // Right
+                        // self.springs.push([indice, indice - rows as u16 + 1]); // Top right
+                        // self.add_distance(indice, indice + 1);
+                        // self.add_distance(indice, indice - rows as u16 + 1);
                         self.springs.push([indice, indice + 1]); // Right
-                        self.springs.push([indice, indice - rows as u16 + 1]); // Top right
+                        self.springs.push([indice, indice - rows as u16 + 1]); // Bottom Right
                         self.add_distance(indice, indice + 1);
                         self.add_distance(indice, indice - rows as u16 + 1);
                         return;
@@ -106,7 +110,7 @@ impl Clothe {
 
                 // Complete last column
                 if col == cols - 1 {
-                        self.springs.push([indice, indice + rows as u16]); // Bottom
+                        self.springs.push([indice, indice + rows as u16]); // Top
                         self.add_distance(indice, indice + rows as u16);
                         return;
                 }
@@ -122,7 +126,7 @@ impl Clothe {
                 // Put the top neighboor
                 if row > 0 {
                     // self.springs.push([indice, indice - rows as u16]); // Top
-                    self.springs.push([indice, indice - rows as u16 + 1]); // Top Right
+                    self.springs.push([indice, indice - rows as u16 + 1]); // Bottom Right
                                                                            // self.add_distance(indice, indice - rows as u16);
                     self.add_distance(indice, indice - rows as u16 + 1);
                 }
@@ -133,8 +137,8 @@ impl Clothe {
                 // }
 
                 self.springs.push([indice, indice + 1]); // Right
-                self.springs.push([indice, indice + rows as u16]); // Bottom
-                self.springs.push([indice, indice + rows as u16 + 1]); // Bottom Right
+                self.springs.push([indice, indice + rows as u16]); // Top
+                self.springs.push([indice, indice + rows as u16 + 1]); // Top Right
                 self.add_distance(indice, indice + 1);
                 self.add_distance(indice, indice + rows as u16);
                 self.add_distance(indice, indice + rows as u16 + 1);
@@ -156,7 +160,7 @@ impl Clothe {
                 // }
 
                 if row < rows - 2 {
-                    self.springs.push([indice, indice + 2 * rows as u16]); // Bottom
+                    self.springs.push([indice, indice + 2 * rows as u16]); // Top
                     self.add_distance(indice, indice + 2 * rows as u16);
                 }
 

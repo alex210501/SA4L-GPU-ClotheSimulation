@@ -14,8 +14,10 @@ use wgpu_bootstrap::{
 use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 1.0;
-const GRAVITY: f32 = 10.0;
+const GRAVITY: f32 = 9.81;
 const MASS: f32 = 10.0;
+const CLOTH_SIZE: f32 = 4.0;
+const NUMBER_SQUARES: u32 = 40;
 
 struct Sphere {
     x: f32,
@@ -49,7 +51,7 @@ impl MyApp {
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
 
         let camera = Camera {
-            eye: (6.0, 0.0, 2.0).into(),
+            eye: (9.0, 0.0, 2.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
@@ -59,9 +61,14 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let clothe = Clothe::new(4.0, 4, &[0.0, 0.0, -10.0]);
+        let clothe = Clothe::new(CLOTH_SIZE, NUMBER_SQUARES, &[0.0, 0.0, -10.0]);
         let (vertices, indices) = icosphere(1);
-        let sphere = Sphere {x: 0.0, y: 0.0, z: 0.0, radius: 1.0};
+        let sphere = Sphere {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            radius: 1.0,
+        };
 
         let pipeline = context.create_render_pipeline(
             "Render Pipeline",
@@ -71,7 +78,7 @@ impl MyApp {
                 &context.texture_bind_group_layout,
                 &context.camera_bind_group_layout,
             ],
-            wgpu::PrimitiveTopology::TriangleList
+            wgpu::PrimitiveTopology::TriangleList,
         );
 
         let sphere_pipeline = context.create_render_pipeline(
@@ -152,41 +159,63 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
-        self.springs.iter().zip(self.rest_distances.iter())
+        let rows = NUMBER_SQUARES as u16 + 1; // Increment because square + 1 vertices
+
+        self.springs
+            .iter()
+            .zip(self.rest_distances.iter())
             .for_each(|([i, j], distance)| {
-            let resultant: Vec<f32> = {
-                let vertex_1 = self.vertices.get(*i as usize).unwrap();
-                let vertex_2 = self.vertices.get(*j as usize).unwrap();
-                // let distance: f32 = vertex_1.position.iter().zip(vertex_2.position.iter())
-                //     .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
+                let resultant: Vec<f32> = {
+                    let vertex_1 = self.vertices.get(*i as usize).unwrap();
+                    let vertex_2 = self.vertices.get(*j as usize).unwrap();
+                    // let distance: f32 = vertex_1.position.iter().zip(vertex_2.position.iter())
+                    //     .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
 
-                vertex_1.position.iter()
-                    .zip(vertex_2.position.iter())
-                    .zip(distance.iter())
-                    .map(|((&a, &b), &old)| (b- a + old)*SPRING_CONSTANT).collect()
-            };
+                    vertex_1
+                        .position
+                        .iter()
+                        .zip(vertex_2.position.iter())
+                        .zip(distance.iter())
+                        .map(|((&a, &b), &old)| ((b - a).abs() - old.abs()) * SPRING_CONSTANT)
+                        .collect()
+                };
 
-            let vertex_1 = self.vertices.get_mut(*i as usize).unwrap();
+                {
+                    let vertex = self.vertices.get_mut(*i as usize).unwrap();
 
-            vertex_1.resultant[0] += resultant.get(0).unwrap();
-            vertex_1.resultant[1] += resultant.get(1).unwrap();
-            vertex_1.resultant[2] += resultant.get(2).unwrap();
-        });
+                    vertex.resultant[0] += resultant.get(0).unwrap();
+                    vertex.resultant[1] += resultant.get(1).unwrap();
+                    vertex.resultant[2] += resultant.get(2).unwrap();
+                }
+
+                {
+                    let vertex = self.vertices.get_mut(*j as usize).unwrap();
+
+                    vertex.resultant[0] -= resultant.get(0).unwrap();
+                    vertex.resultant[1] -= resultant.get(1).unwrap();
+                    vertex.resultant[2] -= resultant.get(2).unwrap();
+                }
+            });
 
         // Update the Buffer that contains the delta_time
         self.vertices.iter_mut().for_each(|vertex| {
             let sphere_position: [f32; 3] = [self.sphere.x, self.sphere.y, self.sphere.z];
-            let distance: f32 = vertex.position.iter().zip(sphere_position.iter())
-                .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
-            
+            let distance: f32 = vertex
+                .position
+                .iter()
+                .zip(sphere_position.iter())
+                .map(|(&a, &b)| (b - a).powf(2.0))
+                .sum::<f32>()
+                .sqrt();
+
             if distance <= self.sphere.radius {
-                vertex.velocity[0] = 0.0;
-                vertex.velocity[1] = 0.0;
+                // vertex.velocity[0] = 0.0;
+                // vertex.velocity[1] = 0.0;
                 vertex.velocity[2] = 0.0;
             } else {
                 vertex.velocity[0] += vertex.resultant[0] * delta_time / MASS;
                 vertex.velocity[1] += vertex.resultant[1] * delta_time / MASS;
-                vertex.velocity[2] += (vertex.resultant[2] / MASS /*+ GRAVITY*/) * delta_time;
+                vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time;
             }
 
             vertex.position[0] += vertex.velocity[0] * delta_time;
