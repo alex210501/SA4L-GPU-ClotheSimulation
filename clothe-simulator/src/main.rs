@@ -18,6 +18,7 @@ const GRAVITY: f32 = 9.81;
 const MASS: f32 = 10.0;
 const CLOTH_SIZE: f32 = 4.0;
 const NUMBER_SQUARES: u32 = 40;
+const DAMPING_FACTOR: f32 = 0.1;
 
 struct Sphere {
     x: f32,
@@ -183,17 +184,17 @@ impl Application for MyApp {
                 {
                     let vertex = self.vertices.get_mut(*i as usize).unwrap();
 
-                    vertex.resultant[0] += resultant.get(0).unwrap();
-                    vertex.resultant[1] += resultant.get(1).unwrap();
-                    vertex.resultant[2] += resultant.get(2).unwrap();
+                    vertex.resultant[0] += resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
+                    vertex.resultant[1] += resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
+                    vertex.resultant[2] += resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
                 }
 
                 {
                     let vertex = self.vertices.get_mut(*j as usize).unwrap();
 
-                    vertex.resultant[0] -= resultant.get(0).unwrap();
-                    vertex.resultant[1] -= resultant.get(1).unwrap();
-                    vertex.resultant[2] -= resultant.get(2).unwrap();
+                    vertex.resultant[0] -= resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
+                    vertex.resultant[1] -= resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
+                    vertex.resultant[2] -= resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
                 }
             });
 
