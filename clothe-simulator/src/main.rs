@@ -2,6 +2,7 @@ use wgpu_bootstrap::{
     application::Application,
     camera::Camera,
     cgmath,
+    computation::Computation,
     context::Context,
     default::{Particle, Vertex},
     frame::Frame,
@@ -10,16 +11,19 @@ use wgpu_bootstrap::{
     wgpu,
     window::Window,
 };
+use std::mem;
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
-const SPRING_CONSTANT: f32 = 1.0;
+const SPRING_CONSTANT: f32 = 0.001;
 const GRAVITY: f32 = 9.81;
-const MASS: f32 = 10.0;
+const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 4.0;
 const NUMBER_SQUARES: u32 = 40;
-const DAMPING_FACTOR: f32 = 0.1;
+const DAMPING_FACTOR: f32 = 0.0;
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Sphere {
     x: f32,
     y: f32,
@@ -35,12 +39,16 @@ struct MyApp {
     sphere_index_buffer: wgpu::Buffer,
     particle_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
+    compute_pipeline: wgpu::ComputePipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    compute_vertex_bind_group: wgpu::BindGroup,
+    compute_sphere_buffer: wgpu::Buffer,
+    compute_sphere_bind_group: wgpu::BindGroup,
     vertices: Vec<Node>,
     indices: Vec<u16>,
     springs: Vec<[u16; 2]>,
-    rest_distances: Vec<[f32; 3]>,
+    rest_distances: Vec<[f32; 4]>,
     sphere: Sphere,
 }
 
@@ -98,12 +106,40 @@ impl MyApp {
             velocity: [0.0, 0.0, 0.0],
         };
 
-        let vertex_buffer = context.create_buffer(&clothe.vertices, wgpu::BufferUsages::VERTEX);
+        let vertex_buffer = context.create_buffer(
+            &clothe.vertices,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
+        );
         let index_buffer = context.create_buffer(&clothe.indices, wgpu::BufferUsages::INDEX);
         let sphere_buffer = context.create_buffer(vertices.as_slice(), wgpu::BufferUsages::VERTEX);
         let sphere_index_buffer =
             context.create_buffer(indices.as_slice(), wgpu::BufferUsages::INDEX);
         let particle_buffer = context.create_buffer(&[particle], wgpu::BufferUsages::VERTEX);
+
+        let compute_pipeline =
+            context.create_compute_pipeline("Compute Pipeline", include_str!("compute.wgsl"));
+
+        let compute_vertex_bind_group = context.create_bind_group(
+            "Compute Bind Group",
+            &compute_pipeline.get_bind_group_layout(0),
+            &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: vertex_buffer.as_entire_binding(),
+            }],
+        );
+
+        let compute_sphere_buffer = context.create_buffer(&[sphere], wgpu::BufferUsages::UNIFORM);
+        let compute_sphere_bind_group = context.create_bind_group(
+            "Compute Data",
+            &compute_pipeline.get_bind_group_layout(1),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: compute_sphere_buffer.as_entire_binding(),
+                }
+            ]
+        );
+
         Self {
             diffuse_bind_group,
             camera_bind_group,
@@ -112,8 +148,12 @@ impl MyApp {
             sphere_buffer,
             sphere_index_buffer,
             particle_buffer,
+            compute_pipeline,
             vertex_buffer,
             index_buffer,
+            compute_vertex_bind_group,
+            compute_sphere_bind_group,
+            compute_sphere_buffer,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
             springs: clothe.springs.clone(),
@@ -160,41 +200,77 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
+        let mut computation = Computation::new(context);
+
+        // {
+        //     let mut compute_pass = computation.begin_compute_pass();
+
+        //     compute_pass.set_pipeline(&self.compute_pipeline);
+        //     // compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
+        //     compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
+        //     compute_pass.dispatch_workgroups(2, 1, 1);
+        // }
+
+        computation.submit();
+
         let rows = NUMBER_SQUARES as u16 + 1; // Increment because square + 1 vertices
 
         self.springs
             .iter()
             .zip(self.rest_distances.iter())
-            .for_each(|([i, j], distance)| {
+            .for_each(|([i, j], rest_distance)| {
                 let resultant: Vec<f32> = {
                     let vertex_1 = self.vertices.get(*i as usize).unwrap();
                     let vertex_2 = self.vertices.get(*j as usize).unwrap();
-                    // let distance: f32 = vertex_1.position.iter().zip(vertex_2.position.iter())
-                    //     .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
-
-                    vertex_1
+                    let distance: f32 = vertex_1
                         .position
                         .iter()
                         .zip(vertex_2.position.iter())
-                        .zip(distance.iter())
-                        .map(|((&a, &b), &old)| ((b - a).abs() - old.abs()) * SPRING_CONSTANT)
-                        .collect()
+                        .map(|(&a, &b)| (b - a).powf(2.0))
+                        .sum::<f32>()
+                        .sqrt();
+                    let distance_test: Vec<f32> = vertex_1
+                        .position
+                        .iter()
+                        .zip(vertex_2.position.iter())
+                        .map(|(&a, &b)| b - a)
+                        .collect();
+                    let r_distance: f32 = rest_distance
+                        .iter()
+                        .map(|&x| x.powf(2.0))
+                        .sum::<f32>()
+                        .sqrt();
+
+                    let fx: f32 = 0.0;
+                    let fy: f32 = 0.0;
+                    let fz: f32 = 0.0;
+
+                    // Right
+                    /*if j == i + 1 {
+                        fx = SPRING_CONSTANT*distance;
+                    }
+
+                    if j == i + rows {
+                        fy = SPRING_CONSTANT*distance;
+                    }*/
+                    let test = -(distance - r_distance) * SPRING_CONSTANT;
+                    vec![test, test, test]
                 };
 
                 {
                     let vertex = self.vertices.get_mut(*i as usize).unwrap();
 
-                    vertex.resultant[0] += resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
-                    vertex.resultant[1] += resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
-                    vertex.resultant[2] += resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
+                    vertex.resultant[0] += resultant.get(0).unwrap();
+                    vertex.resultant[1] += resultant.get(1).unwrap();
+                    vertex.resultant[2] += resultant.get(2).unwrap();
                 }
 
                 {
                     let vertex = self.vertices.get_mut(*j as usize).unwrap();
 
-                    vertex.resultant[0] -= resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
-                    vertex.resultant[1] -= resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
-                    vertex.resultant[2] -= resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
+                    vertex.resultant[0] -= resultant.get(0).unwrap();
+                    vertex.resultant[1] -= resultant.get(1).unwrap();
+                    vertex.resultant[2] -= resultant.get(2).unwrap();
                 }
             });
 
@@ -210,13 +286,16 @@ impl Application for MyApp {
                 .sqrt();
 
             if distance <= self.sphere.radius {
-                // vertex.velocity[0] = 0.0;
-                // vertex.velocity[1] = 0.0;
+                vertex.velocity[0] = 0.0;
+                vertex.velocity[1] = 0.0;
                 vertex.velocity[2] = 0.0;
             } else {
-                vertex.velocity[0] += vertex.resultant[0] * delta_time / MASS;
-                vertex.velocity[1] += vertex.resultant[1] * delta_time / MASS;
-                vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time;
+                vertex.velocity[0] +=
+                    vertex.resultant[0] * delta_time / MASS - vertex.velocity[0] * DAMPING_FACTOR;
+                vertex.velocity[1] +=
+                    vertex.resultant[1] * delta_time / MASS - vertex.velocity[1] * DAMPING_FACTOR;
+                vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time
+                    - vertex.velocity[2] * DAMPING_FACTOR;
             }
 
             vertex.position[0] += vertex.velocity[0] * delta_time;

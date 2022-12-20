@@ -4,8 +4,8 @@ struct CameraUniform {
     view: mat4x4<f32>,
     proj: mat4x4<f32>,
 };
-@group(1) @binding(0)
-var<uniform> matrices: CameraUniform;
+
+@group(1) @binding(0) var<uniform> matrices: CameraUniform;
 
 struct InstanceInput {
     @location(5) translation: vec3<f32>,
@@ -13,12 +13,10 @@ struct InstanceInput {
 };
 
 struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) position: vec3<f32>,
-    @location(2) position: vec3<f32>,
-    @location(3) tex_coords: vec2<f32>,
-    @location(4) velocity: vec3<f32>,
-    @location(5) resultant: vec3<f32>,
+    @location(0) position: vec4<f32>,
+    @location(1) normal: vec4<f32>,
+    @location(2) velocity: vec4<f32>,
+    @location(3) resultant: vec4<f32>,
 }
 
 struct VertexOutput {
@@ -31,8 +29,8 @@ fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.tex_coords = model.tex_coords;
-    out.clip_position = matrices.proj * matrices.view * vec4<f32>(model.position, 1.0);
+    out.tex_coords = vec2<f32>(0.0, 0.0);// model.tex_coords;
+    out.clip_position = matrices.proj * matrices.view * model.position;
     return out;
 }
 
