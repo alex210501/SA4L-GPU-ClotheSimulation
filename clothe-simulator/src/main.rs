@@ -2,6 +2,7 @@ use wgpu_bootstrap::{
     application::Application,
     camera::Camera,
     cgmath,
+    computation::Computation,
     context::Context,
     default::{Particle, Vertex},
     frame::Frame,
@@ -10,6 +11,7 @@ use wgpu_bootstrap::{
     wgpu,
     window::Window,
 };
+use std::mem;
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
@@ -37,8 +39,12 @@ struct MyApp {
     sphere_index_buffer: wgpu::Buffer,
     particle_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
+    compute_pipeline: wgpu::ComputePipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    compute_vertex_bind_group: wgpu::BindGroup,
+    compute_sphere_buffer: wgpu::Buffer,
+    compute_sphere_bind_group: wgpu::BindGroup,
     vertices: Vec<Node>,
     indices: Vec<u16>,
     springs: Vec<[u16; 2]>,
@@ -101,12 +107,40 @@ impl MyApp {
             velocity: [0.0, 0.0, 0.0],
         };
 
-        let vertex_buffer = context.create_buffer(&clothe.vertices, wgpu::BufferUsages::VERTEX);
+        let vertex_buffer = context.create_buffer(
+            &clothe.vertices,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::STORAGE,
+        );
         let index_buffer = context.create_buffer(&clothe.indices, wgpu::BufferUsages::INDEX);
         let sphere_buffer = context.create_buffer(vertices.as_slice(), wgpu::BufferUsages::VERTEX);
         let sphere_index_buffer =
             context.create_buffer(indices.as_slice(), wgpu::BufferUsages::INDEX);
         let particle_buffer = context.create_buffer(&[particle], wgpu::BufferUsages::VERTEX);
+
+        let compute_pipeline =
+            context.create_compute_pipeline("Compute Pipeline", include_str!("compute.wgsl"));
+
+        let compute_vertex_bind_group = context.create_bind_group(
+            "Compute Bind Group",
+            &compute_pipeline.get_bind_group_layout(0),
+            &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: vertex_buffer.as_entire_binding(),
+            }],
+        );
+
+        let compute_sphere_buffer = context.create_buffer(&[sphere], wgpu::BufferUsages::UNIFORM);
+        let compute_sphere_bind_group = context.create_bind_group(
+            "Compute Data",
+            &compute_pipeline.get_bind_group_layout(1),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: compute_sphere_buffer.as_entire_binding(),
+                }
+            ]
+        );
+
         Self {
             diffuse_bind_group,
             camera_bind_group,
@@ -115,8 +149,12 @@ impl MyApp {
             sphere_buffer,
             sphere_index_buffer,
             particle_buffer,
+            compute_pipeline,
             vertex_buffer,
             index_buffer,
+            compute_vertex_bind_group,
+            compute_sphere_bind_group,
+            compute_sphere_buffer,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
             springs: clothe.springs.clone(),
@@ -164,6 +202,19 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
+        let mut computation = Computation::new(context);
+
+        // {
+        //     let mut compute_pass = computation.begin_compute_pass();
+
+        //     compute_pass.set_pipeline(&self.compute_pipeline);
+        //     // compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
+        //     compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
+        //     compute_pass.dispatch_workgroups(2, 1, 1);
+        // }
+
+        computation.submit();
+
         let rows = NUMBER_SQUARES as u16 + 1; // Increment because square + 1 vertices
 
         // Reset all resultants
@@ -200,9 +251,9 @@ impl Application for MyApp {
                 {
                     let vertex = self.vertices.get_mut(*i as usize).unwrap();
 
-                    vertex.resultant[0] += resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
-                    vertex.resultant[1] += resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
-                    vertex.resultant[2] += resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
+                    vertex.resultant[0] += resultant.get(0).unwrap();
+                    vertex.resultant[1] += resultant.get(1).unwrap();
+                    vertex.resultant[2] += resultant.get(2).unwrap();
                 }
 
                 {

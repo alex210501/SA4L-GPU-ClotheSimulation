@@ -38,12 +38,10 @@ impl Clothe {
 
     fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
         self.vertices.push(Node {
-            position: [x, y, z],
-            normal: [0.0, 0.0, 0.0],
-            tangent: [0.0, 0.0, 0.0],
-            tex_coords: [0.0, 0.0],
-            velocity: [0.0, 0.0, 0.0],
-            resultant: [0.0, 0.0, 0.0],
+            position: [x, y, z, 1.0],
+            normal: [0.0, 0.0, 0.0, 1.0],
+            velocity: [0.0, 0.0, 1.0, 1.0],
+            resultant: [0.0, 0.0, 0.0, 1.0],
         });
     }
 
@@ -153,20 +151,10 @@ impl Clothe {
                 self.add_distance(indice, indice + rows as u16 + 1);
 
                 // Bend springs
-                // if col > 1 {
-                //     self.springs.push([indice, indice - 2]); // Left
-                //     self.add_distance(indice, indice - 2);
-                // }
-
                 if col < cols - 2 {
                     self.springs.push([indice, indice + 2]); // Right
                     self.add_distance(indice, indice + 2);
                 }
-
-                // if row > 1 {
-                //     self.springs.push([indice, indice - 2*rows as u16]); // Top
-                //     self.add_distance(indice, indice - 2*rows as u16);
-                // }
 
                 if row < rows - 2 {
                     self.springs.push([indice, indice + 2 * rows as u16]); // Top

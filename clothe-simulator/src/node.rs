@@ -3,12 +3,10 @@ use wgpu_bootstrap::wgpu;
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Node {
-    pub position: [f32; 3],
-    pub normal: [f32; 3],
-    pub tangent: [f32; 3],
-    pub tex_coords: [f32; 2],
-    pub velocity: [f32; 3],
-    pub resultant: [f32; 3],
+    pub position: [f32; 4],
+    pub normal: [f32; 4],
+    pub velocity: [f32; 4],
+    pub resultant: [f32; 4],
 }
 
 impl Node {
@@ -20,32 +18,22 @@ impl Node {
                 wgpu::VertexAttribute {
                     offset: 0,
                     shader_location: 0,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: wgpu::VertexFormat::Float32x4,
                 },
                 wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: wgpu::VertexFormat::Float32x4,
                 },
                 wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 6]>() as wgpu::BufferAddress,
+                    offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
                     shader_location: 2,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-                wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 9]>() as wgpu::BufferAddress,
-                    shader_location: 3,
-                    format: wgpu::VertexFormat::Float32x2,
+                    format: wgpu::VertexFormat::Float32x4,
                 },
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
-                    shader_location: 4,
-                    format: wgpu::VertexFormat::Float32x3,
-                },
-                wgpu::VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 15]>() as wgpu::BufferAddress,
-                    shader_location: 5,
-                    format: wgpu::VertexFormat::Float32x3,
+                    shader_location: 3,
+                    format: wgpu::VertexFormat::Float32x4,
                 },
             ]
         }
