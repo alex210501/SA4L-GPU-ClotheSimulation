@@ -14,6 +14,7 @@ pub struct Clothe {
     pub indices: Vec<u16>,
     pub springs: Vec<[u16; 2]>,
     pub rest_distances: Vec<[f32; 3]>,
+    pub rest_distances_2: Vec<f32>,
 }
 
 impl Clothe {
@@ -28,6 +29,7 @@ impl Clothe {
             center_z: center[2],
             springs: Vec::new(),
             rest_distances: Vec::new(),
+            rest_distances_2: Vec::new(),
         };
 
         instance.construct_vertices();
@@ -40,7 +42,7 @@ impl Clothe {
             normal: [0.0, 0.0, 0.0],
             tangent: [0.0, 0.0, 0.0],
             tex_coords: [0.0, 0.0],
-            velocity: [0.0, 0.0, 0.5],
+            velocity: [0.0, 0.0, 1.5],
             resultant: [0.0, 0.0, 0.0],
         });
     }
@@ -62,6 +64,13 @@ impl Clothe {
 
         self.rest_distances
             .push(distances.as_slice().try_into().unwrap());
+        self.rest_distances_2.push(vertex_1
+            .position
+            .iter()
+            .zip(vertex_2.position.iter())
+            .map(|(&a, &b)| (b - a).powf(2.0))
+            .sum::<f32>()
+            .sqrt());
     }
 
     fn construct_vertices(&mut self) {

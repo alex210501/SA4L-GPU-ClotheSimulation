@@ -4,8 +4,16 @@ struct CameraUniform {
     view: mat4x4<f32>,
     proj: mat4x4<f32>,
 };
-@group(1) @binding(0)
-var<uniform> matrices: CameraUniform;
+
+struct Sphere {
+    x: f32,
+    y: u32,
+    z: f32,
+    radius: f32,
+}
+
+@group(1) @binding(0) var<uniform> matrices: CameraUniform;
+@group(1) @binding(0) var<uniform> data: Sphere;
 
 struct InstanceInput {
     @location(5) translation: vec3<f32>,
