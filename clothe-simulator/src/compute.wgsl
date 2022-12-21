@@ -1,46 +1,37 @@
-struct Instance {
-    model_matrix_0: vec4<f32>,
-    model_matrix_1: vec4<f32>,
+struct Vertex {
+    position: vec4<f32>,
+    normal: vec4<f32>,
     velocity: vec4<f32>,
     resultant: vec4<f32>
 }
 
 struct Sphere {
-    rotation_speed: f32,
-    delta_time: f32,
-    nb_instances: f32,
+    x: f32,
+    y: f32,
+    z: f32,
     radius: f32,
+    spring_contant: f32,
+    damping_factor: f32,
+    gravity: f32,
+    delta_time: f32,
 }
 
-@group(0) @binding(0) var<storage, read_write> instancesData: array<Instance>;
+@group(0) @binding(0) var<storage, read_write> vertices: array<Vertex>;
 @group(1) @binding(0) var<uniform> data: Sphere;
+
 
 @compute @workgroup_size(64, 1, 1) 
 fn main(@builtin(global_invocation_id) param: vec3<u32>) {
-    if (param.x >= u32(data.nb_instances)) {
+    /*if (param.x >= u32(data.nb_instances)) {
           return;
-    }
+    }*/
 
-    var instance = instancesData[param.x];
-    var model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.velocity,
-        instance.resultant,
-    );
+    var vertex = vertices[param.x];
 
-    let a = data.rotation_speed * data.delta_time;
-    let rotation = mat4x4<f32>(
-         cos(a), 0.0, sin(a), 0.0,
-            0.0, 1.0,    0.0, 0.0,
-        -sin(a), 0.0, cos(a), 0.0,
-            0.0, 0.0,    0.0, 1.0,
-    );
+    // Add gravity
+    // vertices[param.x].velocity[2] += data.gravity * data.delta_time;
 
-    var model_matrix = model_matrix * rotation;
-
-    instancesData[param.x].model_matrix_0 = model_matrix[0];
-    instancesData[param.x].model_matrix_1 = model_matrix[1];
-    instancesData[param.x].velocity = model_matrix[2];
-    instancesData[param.x].resultant = model_matrix[3];
+    vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
+    vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
+    vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
 }

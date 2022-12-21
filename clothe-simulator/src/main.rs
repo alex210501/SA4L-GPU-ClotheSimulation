@@ -29,6 +29,10 @@ struct Sphere {
     y: f32,
     z: f32,
     radius: f32,
+    spring_contant: f32,
+    damping_factor: f32,
+    gravity: f32,
+    delta_time: f32,
 }
 
 struct MyApp {
@@ -77,7 +81,11 @@ impl MyApp {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            radius: 1.2,
+            radius: 1.0,
+            spring_contant: SPRING_CONSTANT,
+            damping_factor: DAMPING_FACTOR,
+            gravity: GRAVITY,
+            delta_time: 0.0,
         };
 
         let pipeline = context.create_render_pipeline(
@@ -137,9 +145,11 @@ impl MyApp {
                 wgpu::BindGroupEntry {
                     binding: 0,
                     resource: compute_sphere_buffer.as_entire_binding(),
-                }
+                },
             ]
         );
+
+        
 
         Self {
             diffuse_bind_group,
@@ -202,16 +212,28 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
+        let sphere = Sphere {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            radius: 1.0,
+            spring_contant: SPRING_CONSTANT,
+            damping_factor: DAMPING_FACTOR,
+            gravity: GRAVITY,
+            delta_time,
+        };
+
+        context.update_buffer(&self.compute_sphere_buffer, &[sphere]);
         let mut computation = Computation::new(context);
 
-        // {
-        //     let mut compute_pass = computation.begin_compute_pass();
+        {
+            let mut compute_pass = computation.begin_compute_pass();
 
-        //     compute_pass.set_pipeline(&self.compute_pipeline);
-        //     // compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
-        //     compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
-        //     compute_pass.dispatch_workgroups(2, 1, 1);
-        // }
+            compute_pass.set_pipeline(&self.compute_pipeline);
+            compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
+            compute_pass.dispatch_workgroups(2, 1, 1);
+        }
 
         computation.submit();
 
@@ -286,12 +308,12 @@ impl Application for MyApp {
                 vertex.velocity[2] += (vertex.resultant[2] / MASS + GRAVITY*0.2) * delta_time;
             }
 
-            vertex.position[0] += vertex.velocity[0] * delta_time;
-            vertex.position[1] += vertex.velocity[1] * delta_time;
-            vertex.position[2] += vertex.velocity[2] * delta_time;
+            // vertex.position[0] += vertex.velocity[0] * delta_time;
+            // vertex.position[1] += vertex.velocity[1] * delta_time;
+            // vertex.position[2] += vertex.velocity[2] * delta_time;
         });
 
-        context.update_buffer(&self.vertex_buffer, &self.vertices);
+        //context.update_buffer(&self.vertex_buffer, &self.vertices);
     }
 }
 
