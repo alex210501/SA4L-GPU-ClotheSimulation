@@ -29,6 +29,11 @@ struct Sphere {
     y: f32,
     z: f32,
     radius: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+struct ComputeData {
     spring_contant: f32,
     damping_factor: f32,
     gravity: f32,
@@ -48,6 +53,7 @@ struct MyApp {
     index_buffer: wgpu::Buffer,
     compute_vertex_bind_group: wgpu::BindGroup,
     compute_sphere_buffer: wgpu::Buffer,
+    compute_data_buffer: wgpu::Buffer,
     compute_sphere_bind_group: wgpu::BindGroup,
     vertices: Vec<Node>,
     indices: Vec<u16>,
@@ -81,10 +87,6 @@ impl MyApp {
             y: 0.0,
             z: 0.0,
             radius: 1.0,
-            spring_contant: SPRING_CONSTANT,
-            damping_factor: DAMPING_FACTOR,
-            gravity: GRAVITY,
-            delta_time: 0.0,
         };
 
         let pipeline = context.create_render_pipeline(
@@ -136,7 +138,14 @@ impl MyApp {
             }],
         );
 
+        let compute_data = ComputeData {
+            spring_contant: SPRING_CONSTANT,
+            damping_factor: DAMPING_FACTOR,
+            gravity: GRAVITY,
+            delta_time: 0.0,
+        };
         let compute_sphere_buffer = context.create_buffer(&[sphere], wgpu::BufferUsages::UNIFORM);
+        let compute_data_buffer = context.create_buffer(&[compute_data], wgpu::BufferUsages::UNIFORM);
         let compute_sphere_bind_group = context.create_bind_group(
             "Compute Data",
             &compute_pipeline.get_bind_group_layout(1),
@@ -145,10 +154,12 @@ impl MyApp {
                     binding: 0,
                     resource: compute_sphere_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: compute_data_buffer.as_entire_binding(),
+                },
             ]
         );
-
-        
 
         Self {
             diffuse_bind_group,
@@ -164,6 +175,7 @@ impl MyApp {
             compute_vertex_bind_group,
             compute_sphere_bind_group,
             compute_sphere_buffer,
+            compute_data_buffer,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
             springs: clothe.springs.clone(),
@@ -210,18 +222,14 @@ impl Application for MyApp {
     }
 
     fn update(&mut self, context: &Context, delta_time: f32) {
-        let sphere = Sphere {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            radius: 1.0,
+        let compute_data = ComputeData {
             spring_contant: SPRING_CONSTANT,
             damping_factor: DAMPING_FACTOR,
             gravity: GRAVITY,
             delta_time,
         };
 
-        context.update_buffer(&self.compute_sphere_buffer, &[sphere]);
+        context.update_buffer(&self.compute_data_buffer, &[compute_data]);
         let mut computation = Computation::new(context);
 
         {
