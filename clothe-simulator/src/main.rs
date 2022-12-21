@@ -14,10 +14,10 @@ use wgpu_bootstrap::{
 use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 1.0;
-const GRAVITY: f32 = 9.81;
+const GRAVITY: f32 = 0.0;
 const MASS: f32 = 1.0;
-const CLOTH_SIZE: f32 = 4.0;
-const NUMBER_SQUARES: u32 = 5;
+const CLOTH_SIZE: f32 = 5.0;
+const NUMBER_SQUARES: u32 = 10;
 const DAMPING_FACTOR: f32 = 0.0;
 
 #[repr(C)]
@@ -55,7 +55,7 @@ impl MyApp {
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
 
         let camera = Camera {
-            eye: (9.0, 0.0, 2.0).into(),
+            eye: (9.0, 0.0, 4.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
@@ -71,7 +71,7 @@ impl MyApp {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            radius: 1.0,
+            radius: 1.2,
         };
 
         let pipeline = context.create_render_pipeline(
@@ -187,8 +187,9 @@ impl Application for MyApp {
                             dbg!("{}-{} -> dist: {}, old-dist: {}", *i, *j, distance2, distance);
                             dbg!("{}", (distance2 - distance)*SPRING_CONSTANT);
                         }
-                    // let old_distance: f32 = distance.iter()
-                    //     .map(|value| value.powf(2.0)).sum::<f32>().sqrt();
+                    let vec_from_1_to_2: Vec<f32> = vertex_1.position.iter().zip(vertex_2.position.iter())
+                        .map(|(&a, &b)| b - a).collect();
+                    let norm: f32 = (distance2 - distance)*SPRING_CONSTANT;
                     /*vertex_1
                         .position
                         .iter()
@@ -197,7 +198,7 @@ impl Application for MyApp {
                         .map(|((&a, &b), &old)| (/*(b - a).abs()*/ distance2 - old.abs()) * SPRING_CONSTANT)
                         .collect()*/
 
-                    vec![-(distance2 - distance)*SPRING_CONSTANT; 3]
+                    vec![vec_from_1_to_2[0]*norm, vec_from_1_to_2[1]*norm, vec_from_1_to_2[2]*norm]
                 };
 
                 {
@@ -239,7 +240,7 @@ impl Application for MyApp {
             } else {
                 vertex.velocity[0] += vertex.resultant[0] * delta_time / MASS;
                 vertex.velocity[1] += vertex.resultant[1] * delta_time / MASS;
-                vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time;
+                vertex.velocity[2] += (vertex.resultant[2] / MASS + GRAVITY*0.2) * delta_time;
             }
 
             vertex.position[0] += vertex.velocity[0] * delta_time;

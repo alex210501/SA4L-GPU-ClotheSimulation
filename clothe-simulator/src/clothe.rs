@@ -42,7 +42,7 @@ impl Clothe {
             normal: [0.0, 0.0, 0.0],
             tangent: [0.0, 0.0, 0.0],
             tex_coords: [0.0, 0.0],
-            velocity: [0.0, 0.0, 1.5],
+            velocity: [0.0, 0.0, 1.0],
             resultant: [0.0, 0.0, 0.0],
         });
     }
