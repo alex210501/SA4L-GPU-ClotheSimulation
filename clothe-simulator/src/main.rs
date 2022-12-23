@@ -315,25 +315,25 @@ impl Application for MyApp {
                 .sum::<f32>()
                 .sqrt();
 
-            if distance <= self.sphere.radius {
-                vertex.velocity[0] = 0.0;
-                vertex.velocity[1] = 0.0;
-                vertex.velocity[2] = 0.0;
-            } else {
-                vertex.velocity[0] +=
-                    vertex.resultant[0] * delta_time / MASS - vertex.velocity[0] * DAMPING_FACTOR;
-                vertex.velocity[1] +=
-                    vertex.resultant[1] * delta_time / MASS - vertex.velocity[1] * DAMPING_FACTOR;
-                vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time
-                    - vertex.velocity[2] * DAMPING_FACTOR;
-            }
+            // if distance <= self.sphere.radius {
+            //     vertex.velocity[0] = 0.0;
+            //     vertex.velocity[1] = 0.0;
+            //     vertex.velocity[2] = 0.0;
+            // } else {
+            //     vertex.velocity[0] +=
+            //         vertex.resultant[0] * delta_time / MASS - vertex.velocity[0] * DAMPING_FACTOR;
+            //     vertex.velocity[1] +=
+            //         vertex.resultant[1] * delta_time / MASS - vertex.velocity[1] * DAMPING_FACTOR;
+            //     vertex.velocity[2] += (vertex.resultant[2] / MASS/*+ GRAVITY*/) * delta_time
+            //         - vertex.velocity[2] * DAMPING_FACTOR;
+            // }
 
             // vertex.position[0] += vertex.velocity[0] * delta_time;
             // vertex.position[1] += vertex.velocity[1] * delta_time;
             // vertex.position[2] += vertex.velocity[2] * delta_time;
         });
 
-        //context.update_buffer(&self.vertex_buffer, &self.vertices);
+        // context.update_buffer(&self.vertex_buffer, &self.vertices);
     }
 }
 
