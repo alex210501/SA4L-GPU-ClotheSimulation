@@ -321,7 +321,7 @@ impl Application for MyApp {
             // vertex.position[2] += vertex.velocity[2] * delta_time;
         });
 
-        //context.update_buffer(&self.vertex_buffer, &self.vertices);
+        // context.update_buffer(&self.vertex_buffer, &self.vertices);
     }
 }
 
