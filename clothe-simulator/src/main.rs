@@ -13,12 +13,12 @@ use wgpu_bootstrap::{
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
-const SPRING_CONSTANT: f32 = 1.0;
-const GRAVITY: f32 = 0.0;
+const SPRING_CONSTANT: f32 = 10.0;
+const GRAVITY: f32 = 9.81;
 const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 5.0;
-const NUMBER_SQUARES: u32 = 10;
-const DAMPING_FACTOR: f32 = 0.0;
+const NUMBER_SQUARES: u32 = 20;
+const DAMPING_FACTOR: f32 = 0.5;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -183,13 +183,9 @@ impl Application for MyApp {
                     let distance2: f32 = vertex_1.position.iter().zip(vertex_2.position.iter())
                         .map(|(&a, &b)| (b - a).powf(2.0)).sum::<f32>().sqrt();
 
-                        if *i == 0 && *j == 1 {
-                            dbg!("{}-{} -> dist: {}, old-dist: {}", *i, *j, distance2, distance);
-                            dbg!("{}", (distance2 - distance)*SPRING_CONSTANT);
-                        }
                     let vec_from_1_to_2: Vec<f32> = vertex_1.position.iter().zip(vertex_2.position.iter())
                         .map(|(&a, &b)| b - a).collect();
-                    let norm: f32 = (distance2 - distance)*SPRING_CONSTANT;
+                    let norm: f32 = (distance2 - distance*0.9)*SPRING_CONSTANT;
                     /*vertex_1
                         .position
                         .iter()
@@ -212,13 +208,9 @@ impl Application for MyApp {
                 {
                     let vertex = self.vertices.get_mut(*j as usize).unwrap();
 
-                    vertex.resultant[0] -= resultant.get(0).unwrap() - vertex.velocity[0] * DAMPING_FACTOR;
-                    vertex.resultant[1] -= resultant.get(1).unwrap() - vertex.velocity[1] * DAMPING_FACTOR;
-                    vertex.resultant[2] -= resultant.get(2).unwrap() - vertex.velocity[2] * DAMPING_FACTOR;
-                }
-
-                if *i == 0 && *j == 1 {
-                    dbg!("{}-{} -> vit: (}, r: {}", *i, *j, self.vertices.get(*i as usize).unwrap().velocity, self.vertices.get(*i as usize).unwrap().resultant);
+                    vertex.resultant[0] -= resultant.get(0).unwrap() + vertex.velocity[0] * DAMPING_FACTOR;
+                    vertex.resultant[1] -= resultant.get(1).unwrap() + vertex.velocity[1] * DAMPING_FACTOR;
+                    vertex.resultant[2] -= resultant.get(2).unwrap() + vertex.velocity[2] * DAMPING_FACTOR;
                 }
             });
 
