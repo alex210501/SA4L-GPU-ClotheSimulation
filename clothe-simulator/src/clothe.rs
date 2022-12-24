@@ -12,7 +12,7 @@ pub struct Clothe {
     center_z: f32,
     pub vertices: Vec<Node>,
     pub indices: Vec<u16>,
-    pub springs: Vec<[u16; 2]>,
+    pub springs: Vec<[u32; 2]>,
     pub rest_distances: Vec<[f32; 3]>,
     pub rest_distances_2: Vec<f32>,
 }
@@ -40,7 +40,7 @@ impl Clothe {
         self.vertices.push(Node {
             position: [x, y, z, 1.0],
             normal: [0.0, 0.0, 0.0, 1.0],
-            velocity: [0.0, 0.0, 1.0, 1.0],
+            velocity: [0.0, 0.0, 0.0, 1.0],
             resultant: [0.0, 0.0, 0.0, 1.0],
         });
     }
@@ -50,7 +50,7 @@ impl Clothe {
         self.vertices.len() as u16 - 1
     }
 
-    fn add_distance(&mut self, i: u16, j: u16) {
+    fn add_distance(&mut self, i: u32, j: u32) {
         let vertex_1 = self.vertices.get(i as usize).unwrap();
         let vertex_2 = self.vertices.get(j as usize).unwrap();
         let distances: Vec<f32> = vertex_1
@@ -60,8 +60,8 @@ impl Clothe {
             .map(|(&a, &b)| b - a)
             .collect();
 
-        self.rest_distances
-            .push(distances.as_slice().try_into().unwrap());
+        // self.rest_distances
+        //     .push(distances.as_slice().try_into().unwrap());
         self.rest_distances_2.push(vertex_1
             .position
             .iter()
@@ -91,11 +91,11 @@ impl Clothe {
         // Create triangle
         (0..rows).for_each(|row| {
             (0..cols).for_each(|col| {
-                let indice = (rows * row + col) as u16;
+                let indice = (rows * row + col) as u32;
                 let top_left = indice;
                 let top_right = indice + 1;
-                let bottom_left = indice + rows as u16;
-                let bottom_right = indice + rows as u16 + 1;
+                let bottom_left = indice + rows;
+                let bottom_right = indice + rows + 1;
 
                 // Return on last vertices
                 if row == rows - 1 && col == cols - 1 {
@@ -109,16 +109,16 @@ impl Clothe {
                         // self.add_distance(indice, indice + 1);
                         // self.add_distance(indice, indice - rows as u16 + 1);
                         self.springs.push([indice, indice + 1]); // Right
-                        self.springs.push([indice, indice - rows as u16 + 1]); // Bottom Right
+                        self.springs.push([indice, indice - rows + 1]); // Bottom Right
                         self.add_distance(indice, indice + 1);
-                        self.add_distance(indice, indice - rows as u16 + 1);
+                        self.add_distance(indice, indice - rows + 1);
                         return;
                 }
 
                 // Complete last column
                 if col == cols - 1 {
-                        self.springs.push([indice, indice + rows as u16]); // Top
-                        self.add_distance(indice, indice + rows as u16);
+                        self.springs.push([indice, indice + rows]); // Top
+                        self.add_distance(indice, indice + rows);
                         return;
                 }
 
@@ -133,9 +133,9 @@ impl Clothe {
                 // Put the top neighboor
                 if row > 0 {
                     // self.springs.push([indice, indice - rows as u16]); // Top
-                    self.springs.push([indice, indice - rows as u16 + 1]); // Bottom Right
+                    self.springs.push([indice, indice - rows + 1]); // Bottom Right
                                                                            // self.add_distance(indice, indice - rows as u16);
-                    self.add_distance(indice, indice - rows as u16 + 1);
+                    self.add_distance(indice, indice - rows + 1);
                 }
 
                 // if row > 0 && col > 0 {
@@ -144,11 +144,11 @@ impl Clothe {
                 // }
 
                 self.springs.push([indice, indice + 1]); // Right
-                self.springs.push([indice, indice + rows as u16]); // Top
-                self.springs.push([indice, indice + rows as u16 + 1]); // Top Right
+                self.springs.push([indice, indice + rows]); // Top
+                self.springs.push([indice, indice + rows + 1]); // Top Right
                 self.add_distance(indice, indice + 1);
-                self.add_distance(indice, indice + rows as u16);
-                self.add_distance(indice, indice + rows as u16 + 1);
+                self.add_distance(indice, indice + rows);
+                self.add_distance(indice, indice + rows + 1);
 
                 // Bend springs
                 if col < cols - 2 {
@@ -157,15 +157,15 @@ impl Clothe {
                 }
 
                 if row < rows - 2 {
-                    self.springs.push([indice, indice + 2 * rows as u16]); // Top
-                    self.add_distance(indice, indice + 2 * rows as u16);
+                    self.springs.push([indice, indice + 2 * rows]); // Top
+                    self.add_distance(indice, indice + 2 * rows);
                 }
 
                 // Add indices
                 self.indices
-                    .extend_from_slice(&[top_right, top_left, bottom_left]);
+                    .extend_from_slice(&[top_right as u16, top_left as u16, bottom_left as u16]);
                 self.indices
-                    .extend_from_slice(&[top_right, bottom_left, bottom_right]);
+                    .extend_from_slice(&[top_right as u16, bottom_left as u16, bottom_right as u16]);
             });
         });
 
