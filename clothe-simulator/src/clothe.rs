@@ -4,17 +4,34 @@ use wgpu_bootstrap::{
     wgpu,
 };
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Spring {
+    links: [u32; 12],
+    rest_distance: [[f32; 4]; 12],
+    current_distance: f32,
+}
+
+impl Spring {
+    fn new() -> Self {
+        Self {
+            links: Default::default(),
+            rest_distance: Default::default(),
+            current_distance: 0.0,
+        }
+    }
+}
+
 pub struct Clothe {
     length: f32,
     number_square: u32,
-    center_x: f32,
-    center_y: f32,
-    center_z: f32,
+    pub center_x: f32,
+    pub center_y: f32,
+    pub center_z: f32,
+    pub nb_vertices: u32,
     pub vertices: Vec<Node>,
     pub indices: Vec<u16>,
-    pub springs: Vec<[u32; 2]>,
-    pub rest_distances: Vec<[f32; 3]>,
-    pub rest_distances_2: Vec<f32>,
+    pub springs: Vec<Spring>,
 }
 
 impl Clothe {
@@ -28,8 +45,7 @@ impl Clothe {
             center_y: center[1],
             center_z: center[2],
             springs: Vec::new(),
-            rest_distances: Vec::new(),
-            rest_distances_2: Vec::new(),
+            nb_vertices: 0,
         };
 
         instance.construct_vertices();
@@ -61,14 +77,27 @@ impl Clothe {
             .collect();
 
         // self.rest_distances
-        //     .push(distances.as_slice().try_into().unwrap());
-        self.rest_distances_2.push(vertex_1
+        // //     .push(distances.as_slice().try_into().unwrap());
+        // self.rest_distances_2.push(vertex_1
+        //     .position
+        //     .iter()
+        //     .zip(vertex_2.position.iter())
+        //     .map(|(&a, &b)| (b - a).powf(2.0))
+        //     .sum::<f32>()
+        //     .sqrt());
+    }
+
+    fn get_distance(&self, i: u32, j: u32) -> [f32; 4] {
+        let vertex_1 = self.vertices.get(i as usize).unwrap();
+        let vertex_2 = self.vertices.get(j as usize).unwrap();
+        vertex_1
             .position
             .iter()
             .zip(vertex_2.position.iter())
-            .map(|(&a, &b)| (b - a).powf(2.0))
-            .sum::<f32>()
-            .sqrt());
+            .map(|(&a, &b)| b - a)
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap()
     }
 
     fn construct_vertices(&mut self) {
@@ -88,89 +117,103 @@ impl Clothe {
             });
         });
 
+        // Set the size of the springs vector
+        self.nb_vertices = self.vertices.len() as u32;
+        self.springs = vec![Spring::new(); self.nb_vertices as usize];
         // Create triangle
         (0..rows).for_each(|row| {
             (0..cols).for_each(|col| {
                 let indice = (rows * row + col) as u32;
-                let top_left = indice;
-                let top_right = indice + 1;
-                let bottom_left = indice + rows;
-                let bottom_right = indice + rows + 1;
+                let top_left = indice as u16;
+                let top_right = indice as u16 + 1;
+                let bottom_left = (indice + rows) as u16;
+                let bottom_right = (indice + rows) as u16 + 1;
+                let mut spring = Spring::new();
 
-                // Return on last vertices
-                if row == rows - 1 && col == cols - 1 {
-                    return;
+                for i in 0..12 {
+                    spring.links[i] = indice;
+                    spring.rest_distance[i] = [0.0, 0.0, 0.0, 0.0];
                 }
 
-                // Complete the last row
-                if row == rows - 1 {
-                        // self.springs.push([indice, indice + 1]); // Right
-                        // self.springs.push([indice, indice - rows as u16 + 1]); // Top right
-                        // self.add_distance(indice, indice + 1);
-                        // self.add_distance(indice, indice - rows as u16 + 1);
-                        self.springs.push([indice, indice + 1]); // Right
-                        self.springs.push([indice, indice - rows + 1]); // Bottom Right
-                        self.add_distance(indice, indice + 1);
-                        self.add_distance(indice, indice - rows + 1);
-                        return;
-                }
-
-                // Complete last column
-                if col == cols - 1 {
-                        self.springs.push([indice, indice + rows]); // Top
-                        self.add_distance(indice, indice + rows);
-                        return;
-                }
-
-                // Put the left neighboor
-                // if col > 0 {
-                //     self.springs.push([indice, indice - 1]); // Left
-                //     self.springs.push([indice, indice + rows as u16 - 1]); // Bottom left
-                //     self.add_distance(indice, indice - 1);
-                //     self.add_distance(indice, indice + rows as u16 - 1);
-                // }
-
-                // Put the top neighboor
+                // If it is not the first row, we add the top parts
                 if row > 0 {
-                    // self.springs.push([indice, indice - rows as u16]); // Top
-                    self.springs.push([indice, indice - rows + 1]); // Bottom Right
-                                                                           // self.add_distance(indice, indice - rows as u16);
-                    self.add_distance(indice, indice - rows + 1);
+                    spring.links[0] = indice - cols; // Top
+                    spring.rest_distance[0] = self.get_distance(indice, indice - cols); // Top
+                    if col > 0 {
+                        spring.links[1] = indice - 1 - cols; // Top left
+                        spring.rest_distance[1] = self.get_distance(indice, indice - 1 - cols);
+                        // Top left
+                    }
+                    if col < cols - 1 {
+                        spring.links[2] = indice + 1 - cols; // Top right
+                        spring.rest_distance[2] = self.get_distance(indice, indice + 1 - cols);
+                        // Top right
+                    }
                 }
 
-                // if row > 0 && col > 0 {
-                //     self.springs.push([indice, indice - rows as u16 - 1]); // Top left
-                //     self.add_distance(indice, indice - rows as u16 - 1);
-                // }
+                // If it is not the last row, we can add the bottom part
+                if row < rows - 1 {
+                    spring.links[3] = indice + cols; // Bottom
+                    spring.rest_distance[3] = self.get_distance(indice, indice + cols); // Bottom
 
-                self.springs.push([indice, indice + 1]); // Right
-                self.springs.push([indice, indice + rows]); // Top
-                self.springs.push([indice, indice + rows + 1]); // Top Right
-                self.add_distance(indice, indice + 1);
-                self.add_distance(indice, indice + rows);
-                self.add_distance(indice, indice + rows + 1);
+                    if col > 0 {
+                        spring.links[4] = indice - 1 + cols; // Bottom left
+                        spring.rest_distance[4] = self.get_distance(indice, indice - 1 + cols);
+                        // Bottom left
+                    }
+                    if col < cols - 1 {
+                        spring.links[5] = indice + 1 + cols; // Bottom right
+                        spring.rest_distance[5] = self.get_distance(indice, indice + 1 + cols);
+                        // Bottom right
+                    }
+                }
 
-                // Bend springs
+                // If it is not the first column, we add `left`
+                if col > 0 {
+                    spring.links[6] = indice - 1; // Left
+                    spring.rest_distance[6] = self.get_distance(indice, indice - 1);
+                    // Left
+                }
+
+                // If it is not the last column, we add `right`
+                if col < cols - 1 {
+                    spring.links[7] = indice + 1; // Right
+                    spring.rest_distance[7] = self.get_distance(indice, indice + 1);
+                    // Right
+                }
+
+                // Add blend spring
+                if col > 1 {
+                    spring.links[8] = indice - 2; // Blend left
+                    spring.rest_distance[8] = self.get_distance(indice, indice - 2);
+                    // Blend left
+                }
                 if col < cols - 2 {
-                    self.springs.push([indice, indice + 2]); // Right
-                    self.add_distance(indice, indice + 2);
+                    spring.links[9] = indice + 2; // Blend right
+                    spring.rest_distance[9] = self.get_distance(indice, indice + 2);
+                    // Blend right
                 }
-
+                if row > 1 {
+                    spring.links[10] = indice - 2 * cols; // Blend top
+                    spring.rest_distance[10] = self.get_distance(indice, indice - 2 * cols);
+                    // Blend top
+                }
                 if row < rows - 2 {
-                    self.springs.push([indice, indice + 2 * rows]); // Top
-                    self.add_distance(indice, indice + 2 * rows);
+                    spring.links[11] = indice + 2 * cols; // Blend bottom
+                    spring.rest_distance[11] = self.get_distance(indice, indice + 2 * cols);
+                    // Blend bottom
                 }
 
-                // Add indices
+                self.springs[indice as usize] = spring;
                 self.indices
-                    .extend_from_slice(&[top_right as u16, top_left as u16, bottom_left as u16]);
+                    .extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices
-                    .extend_from_slice(&[top_right as u16, bottom_left as u16, bottom_right as u16]);
+                    .extend_from_slice(&[top_right, bottom_left, bottom_right]);
             });
         });
 
         // dbg!("vertices: {:?}", &self.vertices);
-        // dbg!("indices: {:?}", self.indices);
+        // dbg!("indices: {:?}", &self.indices);
         // dbg!("springs: {:?}", &self.springs);
         // dbg!("rest_distances: {:?}", &self.rest_distances);
     }
