@@ -21,10 +21,10 @@ use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 100.0;
 const GRAVITY: f32 = 9.81;
-const MASS: f32 = 1.0;
+const MASS: f32 = 0.8;
 const CLOTH_SIZE: f32 = 5.0;
-const NUMBER_SQUARES: u32 = 25;
-const DAMPING_FACTOR: f32 = 0.5;
+const NUMBER_SQUARES: u32 = 15;
+const DAMPING_FACTOR: f32 = 0.7;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -42,6 +42,7 @@ struct ClotheData {
     center_y: f32,
     center_z: f32,
     nb_vertices: u32,
+    mass: f32,
 }
 
 #[repr(C)]
@@ -194,6 +195,7 @@ impl MyApp {
             center_y: clothe.center_y,
             center_z: clothe.center_z,
             nb_vertices: clothe.nb_vertices,
+            mass: MASS,
         };
         let compute_sphere_buffer = context.create_buffer(&[sphere], wgpu::BufferUsages::UNIFORM);
         let compute_data_buffer =

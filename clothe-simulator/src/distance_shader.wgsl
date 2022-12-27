@@ -1,8 +1,8 @@
 struct Vertex {
-    position: vec4<f32>,
-    normal: vec4<f32>,
-    velocity: vec4<f32>,
-    resultant: vec4<f32>
+    position: vec3<f32>,
+    normal: vec3<f32>,
+    velocity: vec3<f32>,
+    resultant: vec3<f32>
 }
 
 struct Spring {
@@ -16,6 +16,7 @@ struct ClotheData {
     center_y: f32,
     center_z: f32,
     nb_vertices: u32,
+    mass: f32,
 }
 
 @group(0) @binding(0) var<storage, read> vertices: array<Vertex>;

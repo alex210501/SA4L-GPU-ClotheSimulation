@@ -1,8 +1,8 @@
 struct Vertex {
-    position: vec4<f32>,
-    normal: vec4<f32>,
-    velocity: vec4<f32>,
-    resultant: vec4<f32>
+    position: vec3<f32>,
+    normal: vec3<f32>,
+    velocity: vec3<f32>,
+    resultant: vec3<f32>
 }
 
 struct Sphere {
@@ -17,6 +17,7 @@ struct ClotheData {
     center_y: f32,
     center_z: f32,
     nb_vertices: u32,
+    mass: f32,
 }
 
 struct Spring {
@@ -47,7 +48,7 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
 
     var vertex = vertices[param.x];
     var spring = springs[param.x];
-    let sphere_distance = distance(vec4(sphere.x, sphere.y, sphere.z, 1.0), vertex.position);
+    let sphere_distance = distance(vec3(sphere.x, sphere.y, sphere.z), vertex.position);
 
     // Reset resultant
     vertices[param.x].resultant[0] = 0.0;
@@ -64,9 +65,9 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let norm = (spring.current_distance[i] - spring.rest_distance[i]) * data.spring_contant;
         let spring_force = (vertex_link.position - vertex.position)*norm;
     
-        vertices[param.x].resultant[0] += spring_force[0]- vertices[param.x].velocity[0] * data.damping_factor;
-        vertices[param.x].resultant[1] += spring_force[1]- vertices[param.x].velocity[1] * data.damping_factor;
-        vertices[param.x].resultant[2] += spring_force[2]- vertices[param.x].velocity[2] * data.damping_factor;
+        vertices[param.x].resultant[0] += spring_force[0] - vertices[param.x].velocity[0] * data.damping_factor;
+        vertices[param.x].resultant[1] += spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
+        vertices[param.x].resultant[2] += spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
     }
 
     // Add gravity
@@ -78,9 +79,9 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         vertices[param.x].velocity[1] = 0.0;
         vertices[param.x].velocity[2] = 0.0;
     } else {
-        vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time;
-        vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time;
-        vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time;
+        vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time / clothe_data.mass;
+        vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time / clothe_data.mass;
+        vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time / clothe_data.mass;
     }
 
     vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;

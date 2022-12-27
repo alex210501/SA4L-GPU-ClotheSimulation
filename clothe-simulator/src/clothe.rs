@@ -75,16 +75,6 @@ impl Clothe {
             .zip(vertex_2.position.iter())
             .map(|(&a, &b)| b - a)
             .collect();
-
-        // self.rest_distances
-        // //     .push(distances.as_slice().try_into().unwrap());
-        // self.rest_distances_2.push(vertex_1
-        //     .position
-        //     .iter()
-        //     .zip(vertex_2.position.iter())
-        //     .map(|(&a, &b)| (b - a).powf(2.0))
-        //     .sum::<f32>()
-        //     .sqrt());
     }
 
     fn get_distance(&self, i: u32, j: u32) -> [f32; 4] {
@@ -221,6 +211,10 @@ impl Clothe {
                     .extend_from_slice(&[top_right, top_left, bottom_left]);
                 self.indices
                     .extend_from_slice(&[top_right, bottom_left, bottom_right]);
+                self.indices
+                    .extend_from_slice(&[top_left, top_right, bottom_left]);
+                self.indices
+                    .extend_from_slice(&[bottom_left, top_right, bottom_right]);
             });
         });
 
