@@ -30,6 +30,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) norm: vec4<f32>,
 }
 
 @vertex
@@ -39,6 +40,7 @@ fn vs_main(
     var out: VertexOutput;
     out.tex_coords = vec2<f32>(0.0, 0.0);// model.tex_coords;
     out.clip_position = matrices.proj * matrices.view * model.position;
+    out.norm = model.normal;
     return out;
 }
 
@@ -51,5 +53,15 @@ var s_diffuse: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4(0.5, 0.0, 0.0, 1.0);
+    var norm: vec3<f32> = vec3(in.norm[0], in.norm[1], in.norm[2]);
+    var l: vec3<f32> = vec3(1.0);
+    var v_cam = vec3(0.0, 0.0, 0.4);
+
+    return max(dot(l, norm), 0.05) * vec4(0.5, 0.0, 0.0, 1.0);
+
+    // if in.norm[2] > 0.5 {
+    //     return vec4(0.5, 0.0, 0.0, 1.0);
+    // } else {
+    //     return vec4(0.0, 0.5, 0.0, 1.0);
+    // }
 }

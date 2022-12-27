@@ -64,6 +64,7 @@ struct MyApp {
     pipeline: wgpu::RenderPipeline,
     compute_pipeline: wgpu::ComputePipeline,
     distance_pipeline: wgpu::ComputePipeline,
+    normal_pipeline: wgpu::ComputePipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     compute_vertex_bind_group: wgpu::BindGroup,
@@ -72,6 +73,8 @@ struct MyApp {
     compute_sphere_bind_group: wgpu::BindGroup,
     compute_distance_bind_group: wgpu::BindGroup,
     distance_vertex_bind_group: wgpu::BindGroup,
+    normal_vertex_bind_group: wgpu::BindGroup,
+    normal_bind_group: wgpu::BindGroup,
     vertices: Vec<Node>,
     indices: Vec<u16>,
     sphere: Sphere,
@@ -152,6 +155,10 @@ impl MyApp {
             "Distance Pipeline",
             include_str!("distance_shader.wgsl"),
         );
+        let normal_pipeline = context.create_compute_pipeline(
+            "Normal Pipeline",
+            include_str!("normal_shader.wgsl"),
+        );
 
         let compute_vertex_bind_group = context.create_bind_group(
             "Compute Bind Group",
@@ -171,6 +178,21 @@ impl MyApp {
         let distance_vertex_bind_group = context.create_bind_group(
             "Compute Bind Group",
             &distance_pipeline.get_bind_group_layout(0),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: spring_buffer.as_entire_binding(),
+                },
+            ],
+        );
+
+        let normal_vertex_bind_group = context.create_bind_group(
+            "Normal Bind Group",
+            &normal_pipeline.get_bind_group_layout(0),
             &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -231,6 +253,17 @@ impl MyApp {
             ],
         );
 
+        let normal_bind_group = context.create_bind_group(
+            "Normal Data",
+            &normal_pipeline.get_bind_group_layout(1),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: compute_clothe_data_buffer.as_entire_binding(),
+                },
+            ],
+        );
+
         Self {
             diffuse_bind_group,
             camera_bind_group,
@@ -241,6 +274,7 @@ impl MyApp {
             particle_buffer,
             compute_pipeline,
             distance_pipeline,
+            normal_pipeline,
             vertex_buffer,
             index_buffer,
             compute_vertex_bind_group,
@@ -249,6 +283,8 @@ impl MyApp {
             compute_data_buffer,
             compute_distance_bind_group,
             distance_vertex_bind_group,
+            normal_vertex_bind_group,
+            normal_bind_group,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
             sphere,
@@ -321,6 +357,11 @@ impl Application for MyApp {
             compute_pass.set_pipeline(&self.compute_pipeline);
             compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
             compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
+            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
+
+            compute_pass.set_pipeline(&self.normal_pipeline);
+            compute_pass.set_bind_group(0, &self.normal_vertex_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.normal_bind_group, &[]);
             compute_pass.dispatch_workgroups(compute_nb, 1, 1);
         }
 

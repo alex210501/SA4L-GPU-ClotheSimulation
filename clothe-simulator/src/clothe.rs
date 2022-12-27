@@ -139,48 +139,46 @@ impl Clothe {
 
                 // If it is not the first row, we add the top parts
                 if row > 0 {
-                    spring.links[0] = indice - cols; // Top
-                    spring.rest_distance[0] = self.get_norm_distance(indice, indice - cols); // Top
+                    spring.links[1] = indice - cols; // Top
+                    spring.rest_distance[1] = self.get_norm_distance(indice, indice - cols); // Top
                     if col > 0 {
-                        spring.links[1] = indice - 1 - cols; // Top left
-                        spring.rest_distance[1] = self.get_norm_distance(indice, indice - 1 - cols);
-                        // Top left
+                        spring.links[0] = indice - 1 - cols; // Top left
+                        spring.rest_distance[0] = self.get_norm_distance(indice, indice - 1 - cols); // Top left
                     }
                     if col < cols - 1 {
                         spring.links[2] = indice + 1 - cols; // Top right
-                        spring.rest_distance[2] = self.get_norm_distance(indice, indice + 1 - cols);
-                        // Top right
+                        spring.rest_distance[2] = self.get_norm_distance(indice, indice + 1 - cols); // Top right
                     }
                 }
 
                 // If it is not the last row, we can add the bottom part
                 if row < rows - 1 {
-                    spring.links[3] = indice + cols; // Bottom
-                    spring.rest_distance[3] = self.get_norm_distance(indice, indice + cols); // Bottom
+                    spring.links[5] = indice + cols; // Bottom
+                    spring.rest_distance[5] = self.get_norm_distance(indice, indice + cols); // Bottom
 
                     if col > 0 {
-                        spring.links[4] = indice - 1 + cols; // Bottom left
-                        spring.rest_distance[4] = self.get_norm_distance(indice, indice - 1 + cols);
+                        spring.links[6] = indice - 1 + cols; // Bottom left
+                        spring.rest_distance[6] = self.get_norm_distance(indice, indice - 1 + cols);
                         // Bottom left
                     }
                     if col < cols - 1 {
-                        spring.links[5] = indice + 1 + cols; // Bottom right
-                        spring.rest_distance[5] = self.get_norm_distance(indice, indice + 1 + cols);
+                        spring.links[4] = indice + 1 + cols; // Bottom right
+                        spring.rest_distance[4] = self.get_norm_distance(indice, indice + 1 + cols);
                         // Bottom right
                     }
                 }
 
                 // If it is not the first column, we add `left`
                 if col > 0 {
-                    spring.links[6] = indice - 1; // Left
-                    spring.rest_distance[6] = self.get_norm_distance(indice, indice - 1);
+                    spring.links[7] = indice - 1; // Left
+                    spring.rest_distance[7] = self.get_norm_distance(indice, indice - 1);
                     // Left
                 }
 
                 // If it is not the last column, we add `right`
                 if col < cols - 1 {
-                    spring.links[7] = indice + 1; // Right
-                    spring.rest_distance[7] = self.get_norm_distance(indice, indice + 1);
+                    spring.links[3] = indice + 1; // Right
+                    spring.rest_distance[3] = self.get_norm_distance(indice, indice + 1);
                     // Right
                 }
 
