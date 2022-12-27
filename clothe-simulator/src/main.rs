@@ -19,12 +19,12 @@ use wgpu_bootstrap::{
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
-const SPRING_CONSTANT: f32 = 10.0;
+const SPRING_CONSTANT: f32 = 100.0;
 const GRAVITY: f32 = 9.81;
 const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 5.0;
-const NUMBER_SQUARES: u32 = 20;
-const DAMPING_FACTOR: f32 = 0.4;
+const NUMBER_SQUARES: u32 = 25;
+const DAMPING_FACTOR: f32 = 0.5;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -62,19 +62,17 @@ struct MyApp {
     particle_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     compute_pipeline: wgpu::ComputePipeline,
-    resultants_pipeline: wgpu::ComputePipeline,
+    distance_pipeline: wgpu::ComputePipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     compute_vertex_bind_group: wgpu::BindGroup,
     compute_sphere_buffer: wgpu::Buffer,
     compute_data_buffer: wgpu::Buffer,
     compute_sphere_bind_group: wgpu::BindGroup,
-    resultants_vertex_bind_group: wgpu::BindGroup,
+    compute_distance_bind_group: wgpu::BindGroup,
+    distance_vertex_bind_group: wgpu::BindGroup,
     vertices: Vec<Node>,
     indices: Vec<u16>,
-    springs: Vec<[u32; 2]>,
-    rest_distances: Vec<[f32; 3]>,
-    rest_distances_2: Vec<f32>,
     sphere: Sphere,
     clothe_data: ClotheData,
 }
@@ -149,14 +147,29 @@ impl MyApp {
 
         let compute_pipeline =
             context.create_compute_pipeline("Compute Pipeline", include_str!("compute.wgsl"));
-        let resultants_pipeline = context.create_compute_pipeline(
-            "Resultants Pipeline",
-            include_str!("resultants_shader.wgsl"),
+        let distance_pipeline = context.create_compute_pipeline(
+            "Distance Pipeline",
+            include_str!("distance_shader.wgsl"),
         );
 
         let compute_vertex_bind_group = context.create_bind_group(
             "Compute Bind Group",
             &compute_pipeline.get_bind_group_layout(0),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: vertex_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: spring_buffer.as_entire_binding(),
+                },
+            ],
+        );
+
+        let distance_vertex_bind_group = context.create_bind_group(
+            "Compute Bind Group",
+            &distance_pipeline.get_bind_group_layout(0),
             &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -205,14 +218,15 @@ impl MyApp {
                 },
             ],
         );
-
-        let resultants_vertex_bind_group = context.create_bind_group(
-            "Resultants Bind Group",
-            &resultants_pipeline.get_bind_group_layout(0),
-            &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: vertex_buffer.as_entire_binding(),
-            }],
+        let compute_distance_bind_group = context.create_bind_group(
+            "Compute Data",
+            &distance_pipeline.get_bind_group_layout(1),
+            &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: compute_clothe_data_buffer.as_entire_binding(),
+                },
+            ],
         );
 
         Self {
@@ -224,20 +238,18 @@ impl MyApp {
             sphere_index_buffer,
             particle_buffer,
             compute_pipeline,
-            resultants_pipeline,
+            distance_pipeline,
             vertex_buffer,
             index_buffer,
             compute_vertex_bind_group,
             compute_sphere_bind_group,
             compute_sphere_buffer,
             compute_data_buffer,
-            resultants_vertex_bind_group,
+            compute_distance_bind_group,
+            distance_vertex_bind_group,
             vertices: clothe.vertices.clone(),
             indices: clothe.indices.clone(),
-            springs: Vec::new(),        // clothe.springs.clone(),
-            rest_distances: Vec::new(), // clothe.rest_distances.clone(),
             sphere,
-            rest_distances_2: Vec::new(), // clothe.rest_distances_2.clone(),
             clothe_data,
         }
     }
@@ -298,6 +310,11 @@ impl Application for MyApp {
 
         {
             let mut compute_pass = computation.begin_compute_pass();
+
+            compute_pass.set_pipeline(&self.distance_pipeline);
+            compute_pass.set_bind_group(0, &self.distance_vertex_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.compute_distance_bind_group, &[]);
+            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
 
             compute_pass.set_pipeline(&self.compute_pipeline);
             compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);

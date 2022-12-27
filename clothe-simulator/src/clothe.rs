@@ -8,8 +8,8 @@ use wgpu_bootstrap::{
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Spring {
     links: [u32; 12],
-    rest_distance: [[f32; 4]; 12],
-    current_distance: f32,
+    rest_distance: [f32; 12],
+    current_distance: [f32; 12],
 }
 
 impl Spring {
@@ -17,7 +17,7 @@ impl Spring {
         Self {
             links: Default::default(),
             rest_distance: Default::default(),
-            current_distance: 0.0,
+            current_distance: Default::default(),
         }
     }
 }
@@ -100,6 +100,19 @@ impl Clothe {
             .unwrap()
     }
 
+    fn get_norm_distance(&self, i: u32, j: u32) -> f32 {
+        let vertex_1 = self.vertices.get(i as usize).unwrap();
+        let vertex_2 = self.vertices.get(j as usize).unwrap();
+
+         vertex_1
+            .position
+            .iter()
+            .zip(vertex_2.position.iter())
+            .map(|(&a, &b)| (b - a).powf(2.0))
+            .sum::<f32>()
+            .sqrt()
+    }
+
     fn construct_vertices(&mut self) {
         let vertex_length = self.length / (self.number_square as f32);
         let offset_x = self.center_x - (self.length / 2.0);
@@ -132,21 +145,20 @@ impl Clothe {
 
                 for i in 0..12 {
                     spring.links[i] = indice;
-                    spring.rest_distance[i] = [0.0, 0.0, 0.0, 0.0];
                 }
 
                 // If it is not the first row, we add the top parts
                 if row > 0 {
                     spring.links[0] = indice - cols; // Top
-                    spring.rest_distance[0] = self.get_distance(indice, indice - cols); // Top
+                    spring.rest_distance[0] = self.get_norm_distance(indice, indice - cols); // Top
                     if col > 0 {
                         spring.links[1] = indice - 1 - cols; // Top left
-                        spring.rest_distance[1] = self.get_distance(indice, indice - 1 - cols);
+                        spring.rest_distance[1] = self.get_norm_distance(indice, indice - 1 - cols);
                         // Top left
                     }
                     if col < cols - 1 {
                         spring.links[2] = indice + 1 - cols; // Top right
-                        spring.rest_distance[2] = self.get_distance(indice, indice + 1 - cols);
+                        spring.rest_distance[2] = self.get_norm_distance(indice, indice + 1 - cols);
                         // Top right
                     }
                 }
@@ -154,16 +166,16 @@ impl Clothe {
                 // If it is not the last row, we can add the bottom part
                 if row < rows - 1 {
                     spring.links[3] = indice + cols; // Bottom
-                    spring.rest_distance[3] = self.get_distance(indice, indice + cols); // Bottom
+                    spring.rest_distance[3] = self.get_norm_distance(indice, indice + cols); // Bottom
 
                     if col > 0 {
                         spring.links[4] = indice - 1 + cols; // Bottom left
-                        spring.rest_distance[4] = self.get_distance(indice, indice - 1 + cols);
+                        spring.rest_distance[4] = self.get_norm_distance(indice, indice - 1 + cols);
                         // Bottom left
                     }
                     if col < cols - 1 {
                         spring.links[5] = indice + 1 + cols; // Bottom right
-                        spring.rest_distance[5] = self.get_distance(indice, indice + 1 + cols);
+                        spring.rest_distance[5] = self.get_norm_distance(indice, indice + 1 + cols);
                         // Bottom right
                     }
                 }
@@ -171,36 +183,36 @@ impl Clothe {
                 // If it is not the first column, we add `left`
                 if col > 0 {
                     spring.links[6] = indice - 1; // Left
-                    spring.rest_distance[6] = self.get_distance(indice, indice - 1);
+                    spring.rest_distance[6] = self.get_norm_distance(indice, indice - 1);
                     // Left
                 }
 
                 // If it is not the last column, we add `right`
                 if col < cols - 1 {
                     spring.links[7] = indice + 1; // Right
-                    spring.rest_distance[7] = self.get_distance(indice, indice + 1);
+                    spring.rest_distance[7] = self.get_norm_distance(indice, indice + 1);
                     // Right
                 }
 
                 // Add blend spring
                 if col > 1 {
                     spring.links[8] = indice - 2; // Blend left
-                    spring.rest_distance[8] = self.get_distance(indice, indice - 2);
+                    spring.rest_distance[8] = self.get_norm_distance(indice, indice - 2);
                     // Blend left
                 }
                 if col < cols - 2 {
                     spring.links[9] = indice + 2; // Blend right
-                    spring.rest_distance[9] = self.get_distance(indice, indice + 2);
+                    spring.rest_distance[9] = self.get_norm_distance(indice, indice + 2);
                     // Blend right
                 }
                 if row > 1 {
                     spring.links[10] = indice - 2 * cols; // Blend top
-                    spring.rest_distance[10] = self.get_distance(indice, indice - 2 * cols);
+                    spring.rest_distance[10] = self.get_norm_distance(indice, indice - 2 * cols);
                     // Blend top
                 }
                 if row < rows - 2 {
                     spring.links[11] = indice + 2 * cols; // Blend bottom
-                    spring.rest_distance[11] = self.get_distance(indice, indice + 2 * cols);
+                    spring.rest_distance[11] = self.get_norm_distance(indice, indice + 2 * cols);
                     // Blend bottom
                 }
 
