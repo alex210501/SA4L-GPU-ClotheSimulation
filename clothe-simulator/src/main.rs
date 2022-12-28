@@ -23,8 +23,8 @@ const SPRING_CONSTANT: f32 = 100.0;
 const GRAVITY: f32 = 9.81;
 const MASS: f32 = 0.8;
 const CLOTH_SIZE: f32 = 5.0;
-const NUMBER_SQUARES: u32 = 15;
-const DAMPING_FACTOR: f32 = 0.7;
+const NUMBER_SQUARES: u32 = 25;
+const DAMPING_FACTOR: f32 = 0.3;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -89,7 +89,7 @@ impl MyApp {
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
 
         let camera = Camera {
-            eye: (9.0, 0.0, 4.0).into(),
+            eye: (5.0, -5.0, -10.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),

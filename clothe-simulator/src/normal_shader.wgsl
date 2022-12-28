@@ -46,11 +46,11 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         var vertex_link_1 = vertices[spring.links[j]];
         var vertex_link_2 = vertices[spring.links[i]];
 
-        vertices[param.x].normal += dot(vertex_link_1.position - vertex.position, vertex_link_2.position - vertex.position);
+        vertices[param.x].normal += cross(vertex_link_1.position - vertex.position, vertex_link_2.position - vertex.position);
 
         i++;
         j++;
     }
 
-    // vertices[param.x].normal = normalize(vertices[param.x].normal);
+    vertices[param.x].normal = normalize(vertices[param.x].normal);
 }
