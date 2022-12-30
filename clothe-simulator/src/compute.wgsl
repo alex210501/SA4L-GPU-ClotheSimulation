@@ -80,12 +80,14 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     // Sphere collision
     let sphere_vec = vec3(sphere.x, sphere.y, sphere.z);
     let sphere_distance = distance(sphere_vec, vertices[param.x].position);
-
+    
     if sphere_distance <= sphere.radius {
-        vertices[param.x].position = sphere_vec + sphere.radius*normalize(vertices[param.x].position - sphere_vec);
-    } else {
-        vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
-        vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
-        vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
+        let top_position = sphere_vec + sphere.radius*normalize(vertices[param.x].position - sphere_vec);
+
+        vertices[param.x].velocity = (top_position - vertices[param.x].position) / data.delta_time;
     }
+
+    vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
+    vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
+    vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
 }
