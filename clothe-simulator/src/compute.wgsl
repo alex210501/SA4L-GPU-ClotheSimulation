@@ -48,7 +48,6 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
 
     var vertex = vertices[param.x];
     var spring = springs[param.x];
-    let sphere_distance = distance(vec3(sphere.x, sphere.y, sphere.z), vertex.position);
 
     // Reset resultant
     vertices[param.x].resultant[0] = 0.0;
@@ -73,18 +72,20 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     // Add gravity
     vertices[param.x].velocity[2] += data.gravity * data.delta_time;
 
-    // Sphere collision
-    if sphere_distance <= sphere.radius {
-        vertices[param.x].velocity[0] = 0.0;
-        vertices[param.x].velocity[1] = 0.0;
-        vertices[param.x].velocity[2] = 0.0;
-    } else {
-        vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time / clothe_data.mass;
-        vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time / clothe_data.mass;
-        vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time / clothe_data.mass;
-    }
+    // New velocities
+    vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time / clothe_data.mass;
+    vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time / clothe_data.mass;
+    vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time / clothe_data.mass;
 
-    vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
-    vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
-    vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
+    // Sphere collision
+    let sphere_vec = vec3(sphere.x, sphere.y, sphere.z);
+    let sphere_distance = distance(sphere_vec, vertices[param.x].position);
+
+    if sphere_distance <= sphere.radius {
+        vertices[param.x].position = sphere_vec + sphere.radius*normalize(vertices[param.x].position - sphere_vec);
+    } else {
+        vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
+        vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
+        vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
+    }
 }

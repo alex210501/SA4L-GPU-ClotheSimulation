@@ -21,7 +21,7 @@ use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 100.0;
 const GRAVITY: f32 = 9.81;
-const MASS: f32 = 0.8;
+const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 5.0;
 const NUMBER_SQUARES: u32 = 25;
 const DAMPING_FACTOR: f32 = 0.3;
@@ -105,7 +105,7 @@ impl MyApp {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            radius: 1.2,
+            radius: 1.05,
         };
 
         let pipeline = context.create_render_pipeline(
