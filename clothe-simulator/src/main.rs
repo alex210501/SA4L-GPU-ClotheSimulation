@@ -33,6 +33,7 @@ struct Sphere {
     y: f32,
     z: f32,
     radius: f32,
+    friction_factor: f32,
 }
 
 #[repr(C)]
@@ -106,6 +107,7 @@ impl MyApp {
             y: 0.0,
             z: 0.0,
             radius: 1.05,
+            friction_factor: 0.5,
         };
 
         let pipeline = context.create_render_pipeline(

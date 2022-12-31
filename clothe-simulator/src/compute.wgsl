@@ -10,6 +10,7 @@ struct Sphere {
     y: f32,
     z: f32,
     radius: f32,
+    friction_factor: f32,
 }
 
 struct ClotheData {
@@ -75,7 +76,7 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let r_t = vertices[param.x].resultant - r_n;
         let one_t = normalize(r_t);
 
-        vertices[param.x].resultant += -min(length(r_t), 0.2*length(r_n))*one_t;
+        vertices[param.x].resultant += -min(length(r_t), sphere.friction_factor*length(r_n))*one_t;
     }
 
     // New velocities
