@@ -19,7 +19,7 @@ use wgpu_bootstrap::{
 
 use clothe_simulator::{clothe::Clothe, node::Node};
 
-const SPRING_CONSTANT: f32 = 100.0;
+const SPRING_CONSTANT: f32 = 1000.0;
 const GRAVITY: f32 = 9.81;
 const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 5.0;
@@ -102,7 +102,7 @@ impl MyApp {
         let clothe = Clothe::new(CLOTH_SIZE, NUMBER_SQUARES, &[0.0, 0.0, -10.0]);
         let (vertices, indices) = icosphere(1);
         let sphere = Sphere {
-            x: 0.0,
+            x: 1.0,
             y: 0.0,
             z: 0.0,
             radius: 1.05,
@@ -333,7 +333,7 @@ impl Application for MyApp {
         let compute_data = ComputeData {
             spring_contant: SPRING_CONSTANT,
             damping_factor: DAMPING_FACTOR,
-            gravity: GRAVITY,
+            gravity: GRAVITY * 0.1,
             delta_time: delta_time * 1.0,
         };
 
