@@ -2,7 +2,8 @@ struct Vertex {
     position: vec3<f32>,
     normal: vec3<f32>,
     velocity: vec3<f32>,
-    resultant: vec3<f32>
+    resultant: vec3<f32>,
+    tex_coords: vec4<f32>,
 }
 
 struct ClotheData {
@@ -52,5 +53,5 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         j++;
     }
 
-    vertices[param.x].normal = normalize(vertices[param.x].normal);
+    vertices[param.x].normal = -normalize(vertices[param.x].normal);
 }

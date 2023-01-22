@@ -2,7 +2,8 @@ struct Vertex {
     position: vec3<f32>,
     normal: vec3<f32>,
     velocity: vec3<f32>,
-    resultant: vec3<f32>
+    resultant: vec3<f32>,
+    tex_coords: vec4<f32>,
 }
 
 struct Spring {

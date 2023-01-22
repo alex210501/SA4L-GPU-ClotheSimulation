@@ -52,17 +52,18 @@ impl Clothe {
         instance
     }
 
-    fn add_vertex(&mut self, x: f32, y: f32, z: f32) {
+    fn add_vertex(&mut self, x: f32, y: f32, z: f32, x_tex_coords: f32, y_tex_coords: f32) {
         self.vertices.push(Node {
             position: [x, y, z, 1.0],
             normal: [0.0, 0.0, 0.0, 1.0],
             velocity: [0.0, 0.0, 0.0, 1.0],
             resultant: [0.0, 0.0, 0.0, 1.0],
+            tex_coords: [x_tex_coords, y_tex_coords, 1.0, 1.0],
         });
     }
 
-    fn insert_vertex(&mut self, x: f32, y: f32, z: f32) -> u16 {
-        self.add_vertex(x, y, z);
+    fn insert_vertex(&mut self, x: f32, y: f32, z: f32, x_tex_coords: f32, y_tex_coords: f32) -> u16 {
+        self.add_vertex(x, y, z, x_tex_coords, y_tex_coords);
         self.vertices.len() as u16 - 1
     }
 
@@ -115,8 +116,10 @@ impl Clothe {
             (0..cols).map(|x| x as f32).for_each(|x| {
                 let row_offset = x * vertex_length + offset_x;
                 let col_offset = z * vertex_length + offset_z;
+                let x_coords = x / (rows as f32 - 1.0);
+                let y_coords = z / (cols as f32 - 1.0);
 
-                let _ = self.insert_vertex(row_offset, self.center_y, col_offset);
+                let _ = self.insert_vertex(row_offset, self.center_y, col_offset, x_coords, y_coords);
             });
         });
 
@@ -223,10 +226,7 @@ impl Clothe {
             });
         });
 
-        dbg!("vertices: {:?}", self.vertices.len());
-        for v in &self.vertices {
-            println!("{:?}", v.position);
-        }
+        // dbg!("vertices: {:?}", &self.vertices);
         // dbg!("indices: {:?}", &self.indices);
         // dbg!("springs: {:?}", &self.springs);
         // dbg!("rest_distances: {:?}", &self.rest_distances);

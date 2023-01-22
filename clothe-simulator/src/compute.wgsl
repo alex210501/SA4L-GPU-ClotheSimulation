@@ -2,7 +2,8 @@ struct Vertex {
     position: vec3<f32>,
     normal: vec3<f32>,
     velocity: vec3<f32>,
-    resultant: vec3<f32>
+    resultant: vec3<f32>,
+    tex_coords: vec4<f32>,
 }
 
 struct Sphere {
@@ -67,12 +68,12 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let spring_force = (vertex_link.position - vertex.position)*norm;
     
         vertices[param.x].resultant[0] += spring_force[0] - vertices[param.x].velocity[0] * data.damping_factor;
-        vertices[param.x].resultant[1] += (-data.gravity * clothe_data.mass) + spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
+        vertices[param.x].resultant[1] += (data.gravity * clothe_data.mass) + spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
         vertices[param.x].resultant[2] += spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
     }
 
     if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
-        let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * vertices[param.x].normal;
+        let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * normalize(vertices[param.x].normal);
         let r_t = vertices[param.x].resultant - r_n;
         let one_t = normalize(r_t);
 
@@ -90,35 +91,9 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
 
     // Sphere collision
     if distance(sphere_vec, vertices[param.x].position) < sphere.radius {
-        let old_position = vertices[param.x].position; // sphere.radius*normalize(vertices[param.x].position - sphere_vec);
+        let old_position = vec3(vertices[param.x].position); 
 
-        vertices[param.x].position = sphere_vec + sphere.radius*normalize(vertices[param.x].position - sphere_vec);
+        vertices[param.x].position = sphere_vec + sphere.radius * normalize(vertices[param.x].position - sphere_vec);
         vertices[param.x].velocity = (vertices[param.x].position - old_position) / data.delta_time;
     }
-
-     // if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
-        // let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * vertices[param.x].normal;
-        // let r_t = vertices[param.x].resultant - r_n;
-        // let one_t = normalize(r_t);
-
-        // vertices[param.x].resultant += -min(length(r_t), 1.0*length(r_n))*one_t;
-    // }
-
-    // New velocities
-    // vertices[param.x].velocity += vertices[param.x].resultant * data.delta_time; // / clothe_data.mass;
-    // vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time / clothe_data.mass;
-    // vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time / clothe_data.mass;
-    // vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time / clothe_data.mass;
-
-    // vertices[param.x].position += vertices[param.x].velocity * data.delta_time;
-    // vertices[param.x].position[0] += 0.0; // vertices[param.x].velocity[0] * data.delta_time;
-    // vertices[param.x].position[1] += 0.0; // vertices[param.x].velocity[1] * data.delta_time;
-    // vertices[param.x].position[2] += 1.0; // vertices[param.x].velocity[2] * data.delta_time;
-   
-    // if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
-    //     let old_position = vec3(vertices[param.x].position);
-
-    //     vertices[param.x].position = sphere_vec + sphere.radius*normalize(vertices[param.x].position - sphere_vec);
-    //     vertices[param.x].velocity = (vertices[param.x].position - old_position) / data.delta_time;
-    // }
 }

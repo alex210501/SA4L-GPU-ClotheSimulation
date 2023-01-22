@@ -20,8 +20,8 @@ use wgpu_bootstrap::{
 use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 1000.0;
-const GRAVITY: f32 = 9.81;
-const MASS: f32 = 0.4;
+const GRAVITY: f32 = -9.81;
+const MASS: f32 = 0.5;
 const CLOTH_SIZE: f32 = 2.5;
 const NUMBER_SQUARES: u32 = 20;
 const DAMPING_FACTOR: f32 = 0.5;
@@ -57,6 +57,7 @@ struct ComputeData {
 
 struct MyApp {
     diffuse_bind_group: wgpu::BindGroup,
+    clothe_diffuse_bind_group: wgpu::BindGroup,
     camera_bind_group: wgpu::BindGroup,
     sphere_pipeline: wgpu::RenderPipeline,
     sphere_buffer: wgpu::Buffer,
@@ -86,11 +87,15 @@ impl MyApp {
     fn new(context: &Context) -> Self {
         let texture =
             context.create_srgb_texture("golf-ball.jpg", include_bytes!("golf-ball.jpg"));
+        let clothe_texture = 
+            context.create_srgb_texture("clothe-texture.jpg", include_bytes!("clothe-texture.jpg"));
 
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
+        let clothe_diffuse_bind_group = create_texture_bind_group(context, &clothe_texture);
+
 
         let camera = Camera {
-            eye: (5.0, 0.0, -5.0).into(),
+            eye: (3.0, 0.0, 0.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
@@ -103,11 +108,11 @@ impl MyApp {
         let clothe = Clothe::new(CLOTH_SIZE, NUMBER_SQUARES, &[0.0, 2.0, 0.0]);
         let (vertices, indices) = icosphere(1);
         let sphere = Sphere {
-            x: -0.3,
+            x: 0.0,
             y: 0.0,
             z: 0.0,
             radius: 1.05,
-            friction_factor: 100.0,
+            friction_factor: 0.8,
         };
 
         let pipeline = context.create_render_pipeline(
@@ -268,6 +273,7 @@ impl MyApp {
 
         Self {
             diffuse_bind_group,
+            clothe_diffuse_bind_group,
             camera_bind_group,
             pipeline,
             sphere_pipeline,
@@ -308,7 +314,7 @@ impl Application for MyApp {
             });
 
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
+            render_pass.set_bind_group(0, &self.clothe_diffuse_bind_group, &[]);
             render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
@@ -351,6 +357,11 @@ impl Application for MyApp {
         {
             let mut compute_pass = computation.begin_compute_pass();
 
+            compute_pass.set_pipeline(&self.normal_pipeline);
+            compute_pass.set_bind_group(0, &self.normal_vertex_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.normal_bind_group, &[]);
+            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
+
             compute_pass.set_pipeline(&self.distance_pipeline);
             compute_pass.set_bind_group(0, &self.distance_vertex_bind_group, &[]);
             compute_pass.set_bind_group(1, &self.compute_distance_bind_group, &[]);
@@ -359,11 +370,6 @@ impl Application for MyApp {
             compute_pass.set_pipeline(&self.compute_pipeline);
             compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
             compute_pass.set_bind_group(1, &self.compute_sphere_bind_group, &[]);
-            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
-
-            compute_pass.set_pipeline(&self.normal_pipeline);
-            compute_pass.set_bind_group(0, &self.normal_vertex_bind_group, &[]);
-            compute_pass.set_bind_group(1, &self.normal_bind_group, &[]);
             compute_pass.dispatch_workgroups(compute_nb, 1, 1);
         }
 
