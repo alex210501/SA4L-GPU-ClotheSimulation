@@ -21,10 +21,10 @@ use clothe_simulator::{clothe::Clothe, node::Node};
 
 const SPRING_CONSTANT: f32 = 1000.0;
 const GRAVITY: f32 = 9.81;
-const MASS: f32 = 1.0;
-const CLOTH_SIZE: f32 = 5.0;
-const NUMBER_SQUARES: u32 = 30;
-const DAMPING_FACTOR: f32 = 0.3;
+const MASS: f32 = 0.4;
+const CLOTH_SIZE: f32 = 2.5;
+const NUMBER_SQUARES: u32 = 20;
+const DAMPING_FACTOR: f32 = 0.5;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -85,12 +85,12 @@ struct MyApp {
 impl MyApp {
     fn new(context: &Context) -> Self {
         let texture =
-            context.create_srgb_texture("happy-tree.png", include_bytes!("happy-tree.png"));
+            context.create_srgb_texture("golf-ball.jpg", include_bytes!("golf-ball.jpg"));
 
         let diffuse_bind_group = create_texture_bind_group(context, &texture);
 
         let camera = Camera {
-            eye: (5.0, -5.0, -10.0).into(),
+            eye: (5.0, 0.0, -5.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
@@ -100,14 +100,14 @@ impl MyApp {
         };
 
         let (_camera_buffer, camera_bind_group) = camera.create_camera_bind_group(context);
-        let clothe = Clothe::new(CLOTH_SIZE, NUMBER_SQUARES, &[0.0, 0.0, -10.0]);
+        let clothe = Clothe::new(CLOTH_SIZE, NUMBER_SQUARES, &[0.0, 2.0, 0.0]);
         let (vertices, indices) = icosphere(1);
         let sphere = Sphere {
-            x: -1.0,
+            x: -0.3,
             y: 0.0,
             z: 0.0,
             radius: 1.05,
-            friction_factor: 0.5,
+            friction_factor: 100.0,
         };
 
         let pipeline = context.create_render_pipeline(
@@ -335,8 +335,8 @@ impl Application for MyApp {
         let compute_data = ComputeData {
             spring_contant: SPRING_CONSTANT,
             damping_factor: DAMPING_FACTOR,
-            gravity: GRAVITY * 0.1,
-            delta_time: delta_time * 1.0,
+            gravity: GRAVITY * 0.2,
+            delta_time: delta_time,
         };
 
         context.update_buffer(&self.compute_data_buffer, &[compute_data]);

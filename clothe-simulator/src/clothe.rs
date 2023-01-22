@@ -106,17 +106,17 @@ impl Clothe {
     fn construct_vertices(&mut self) {
         let vertex_length = self.length / (self.number_square as f32);
         let offset_x = self.center_x - (self.length / 2.0);
-        let offset_y = self.center_y - (self.length / 2.0);
+        let offset_z = self.center_z - (self.length / 2.0);
         let rows = self.number_square + 1;
         let cols = self.number_square + 1;
 
         // Create vertices
-        (0..rows).map(|x| x as f32).for_each(|y| {
+        (0..rows).map(|x| x as f32).for_each(|z| {
             (0..cols).map(|x| x as f32).for_each(|x| {
                 let row_offset = x * vertex_length + offset_x;
-                let col_offset = y * vertex_length + offset_y;
+                let col_offset = z * vertex_length + offset_z;
 
-                let _ = self.insert_vertex(row_offset, -col_offset, self.center_z);
+                let _ = self.insert_vertex(row_offset, self.center_y, col_offset);
             });
         });
 
@@ -223,7 +223,10 @@ impl Clothe {
             });
         });
 
-        // dbg!("vertices: {:?}", &self.vertices);
+        dbg!("vertices: {:?}", self.vertices.len());
+        for v in &self.vertices {
+            println!("{:?}", v.position);
+        }
         // dbg!("indices: {:?}", &self.indices);
         // dbg!("springs: {:?}", &self.springs);
         // dbg!("rest_distances: {:?}", &self.rest_distances);

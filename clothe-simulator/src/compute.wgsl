@@ -67,8 +67,8 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let spring_force = (vertex_link.position - vertex.position)*norm;
     
         vertices[param.x].resultant[0] += spring_force[0] - vertices[param.x].velocity[0] * data.damping_factor;
-        vertices[param.x].resultant[1] += spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
-        vertices[param.x].resultant[2] += (data.gravity*clothe_data.mass) + spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
+        vertices[param.x].resultant[1] += (-data.gravity * clothe_data.mass) + spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
+        vertices[param.x].resultant[2] += spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
     }
 
     if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
