@@ -120,6 +120,25 @@ impl Clothe {
             });
         });
 
+        (0..rows - 1).for_each(|row| {
+            (0..cols - 1).for_each(|col| {
+                let indice = (rows * row + col) as u32;
+                let top_left = indice as u16;
+                let top_right = indice as u16 + 1;
+                let bottom_left = (indice + rows) as u16;
+                let bottom_right = (indice + rows) as u16 + 1;
+
+                self.indices
+                    .extend_from_slice(&[top_right, top_left, bottom_left]);
+                self.indices
+                    .extend_from_slice(&[top_right, bottom_left, bottom_right]);
+                self.indices
+                    .extend_from_slice(&[top_left, top_right, bottom_left]);
+                self.indices
+                    .extend_from_slice(&[bottom_left, top_right, bottom_right]);
+            });
+        });
+
         // Set the size of the springs vector
         self.nb_vertices = self.vertices.len() as u32;
         self.springs = vec![Spring::new(); self.nb_vertices as usize];
@@ -127,10 +146,6 @@ impl Clothe {
         (0..rows).for_each(|row| {
             (0..cols).for_each(|col| {
                 let indice = (rows * row + col) as u32;
-                let top_left = indice as u16;
-                let top_right = indice as u16 + 1;
-                let bottom_left = (indice + rows) as u16;
-                let bottom_right = (indice + rows) as u16 + 1;
                 let mut spring = Spring::new();
 
                 for i in 0..12 {
@@ -205,14 +220,6 @@ impl Clothe {
                 }
 
                 self.springs[indice as usize] = spring;
-                self.indices
-                    .extend_from_slice(&[top_right, top_left, bottom_left]);
-                self.indices
-                    .extend_from_slice(&[top_right, bottom_left, bottom_right]);
-                self.indices
-                    .extend_from_slice(&[top_left, top_right, bottom_left]);
-                self.indices
-                    .extend_from_slice(&[bottom_left, top_right, bottom_right]);
             });
         });
 
