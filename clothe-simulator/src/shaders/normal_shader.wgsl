@@ -43,11 +43,14 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     var i: u32 = 1u;
     var j: u32 = 0u;
 
+    // Calcul normal xwith the 8 vertices directly connected
     while i < 8u {
-        var vertex_link_1 = vertices[spring.links[j]];
-        var vertex_link_2 = vertices[spring.links[i]];
+        if spring.links[j] !=  spring.links[i] {
+            var vertex_link_1 = vertices[spring.links[j]];
+            var vertex_link_2 = vertices[spring.links[i]];
 
-        vertices[param.x].normal += cross(vertex_link_1.position - vertex.position, vertex_link_2.position - vertex.position);
+            vertices[param.x].normal += cross(vertex_link_1.position - vertex.position, vertex_link_2.position - vertex.position);
+        }
 
         i++;
         j++;

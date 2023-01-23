@@ -57,9 +57,11 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     vertices[param.x].resultant[1] = 0.0;
     vertices[param.x].resultant[2] = 0.0;
 
+    // Loop on every spring
     for (var i: i32 = 0; i < 12; i++) {
         let vertex_link = vertices[spring.links[i]];
 
+        // If it is the same spring, don't make useless calculations
         if spring.links[i] == param.x {
             continue;
         }
@@ -67,11 +69,13 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let norm = (spring.current_distance[i] - spring.rest_distance[i]) * data.spring_contant;
         let spring_force = (vertex_link.position - vertex.position)*norm;
     
+        // Calcul resistances
         vertices[param.x].resultant[0] += spring_force[0] - vertices[param.x].velocity[0] * data.damping_factor;
         vertices[param.x].resultant[1] += (data.gravity * clothe_data.mass) + spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
         vertices[param.x].resultant[2] += spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
     }
 
+    // Add friction with the sphere
     if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
         let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * normalize(vertices[param.x].normal);
         let r_t = vertices[param.x].resultant - r_n;

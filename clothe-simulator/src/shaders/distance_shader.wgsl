@@ -33,6 +33,7 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     var vertex = vertices[param.x];
     var spring = springs[param.x];
 
+    // Calcul distance for each spring of the vertex
     for (var i: i32 = 0; i < 12; i++) {
         let vertex_link = vertices[spring.links[i]];
 

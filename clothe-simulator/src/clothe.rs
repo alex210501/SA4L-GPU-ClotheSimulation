@@ -1,26 +1,7 @@
-use crate::node::Node;
-use wgpu_bootstrap::{
-    cgmath::{self, prelude::*},
-    wgpu,
+use crate::{
+    node::Node,
+    spring::Spring,
 };
-
-#[repr(C)]
-#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Spring {
-    links: [u32; 12],
-    rest_distance: [f32; 12],
-    current_distance: [f32; 12],
-}
-
-impl Spring {
-    fn new() -> Self {
-        Self {
-            links: Default::default(),
-            rest_distance: Default::default(),
-            current_distance: Default::default(),
-        }
-    }
-}
 
 pub struct Clothe {
     length: f32,
@@ -52,7 +33,7 @@ impl Clothe {
         instance
     }
 
-    fn add_vertex(&mut self, x: f32, y: f32, z: f32, x_tex_coords: f32, y_tex_coords: f32) {
+    fn insert_vertex(&mut self, x: f32, y: f32, z: f32, x_tex_coords: f32, y_tex_coords: f32) -> u16 {
         self.vertices.push(Node {
             position: [x, y, z, 1.0],
             normal: [0.0, 0.0, 0.0, 1.0],
@@ -60,35 +41,7 @@ impl Clothe {
             resultant: [0.0, 0.0, 0.0, 1.0],
             tex_coords: [x_tex_coords, y_tex_coords, 1.0, 1.0],
         });
-    }
-
-    fn insert_vertex(&mut self, x: f32, y: f32, z: f32, x_tex_coords: f32, y_tex_coords: f32) -> u16 {
-        self.add_vertex(x, y, z, x_tex_coords, y_tex_coords);
         self.vertices.len() as u16 - 1
-    }
-
-    fn add_distance(&mut self, i: u32, j: u32) {
-        let vertex_1 = self.vertices.get(i as usize).unwrap();
-        let vertex_2 = self.vertices.get(j as usize).unwrap();
-        let distances: Vec<f32> = vertex_1
-            .position
-            .iter()
-            .zip(vertex_2.position.iter())
-            .map(|(&a, &b)| b - a)
-            .collect();
-    }
-
-    fn get_distance(&self, i: u32, j: u32) -> [f32; 4] {
-        let vertex_1 = self.vertices.get(i as usize).unwrap();
-        let vertex_2 = self.vertices.get(j as usize).unwrap();
-        vertex_1
-            .position
-            .iter()
-            .zip(vertex_2.position.iter())
-            .map(|(&a, &b)| b - a)
-            .collect::<Vec<f32>>()
-            .try_into()
-            .unwrap()
     }
 
     fn get_norm_distance(&self, i: u32, j: u32) -> f32 {
@@ -119,26 +72,24 @@ impl Clothe {
                 let x_coords = x / (rows as f32 - 1.0);
                 let y_coords = z / (cols as f32 - 1.0);
 
-                let _ = self.insert_vertex(row_offset, self.center_y, col_offset, x_coords, y_coords);
+                let _ = self.insert_vertex(row_offset, self.center_y, col_offset, 
+                    x_coords, y_coords);
             });
         });
 
+        // Create indices
         (0..rows - 1).for_each(|row| {
             (0..cols - 1).for_each(|col| {
                 let indice = (rows * row + col) as u32;
                 let top_left = indice as u16;
-                let top_right = indice as u16 + 1;
+                let top_right = (indice as u16) + 1;
                 let bottom_left = (indice + rows) as u16;
-                let bottom_right = (indice + rows) as u16 + 1;
+                let bottom_right = ((indice + rows) as u16) + 1;
 
-                self.indices
-                    .extend_from_slice(&[top_right, top_left, bottom_left]);
-                self.indices
-                    .extend_from_slice(&[top_right, bottom_left, bottom_right]);
-                self.indices
-                    .extend_from_slice(&[top_left, top_right, bottom_left]);
-                self.indices
-                    .extend_from_slice(&[bottom_left, top_right, bottom_right]);
+                self.indices.extend_from_slice(&[top_right, top_left, bottom_left]);
+                self.indices.extend_from_slice(&[top_right, bottom_left, bottom_right]);
+                self.indices.extend_from_slice(&[top_left, top_right, bottom_left]);
+                self.indices.extend_from_slice(&[bottom_left, top_right, bottom_right]);
             });
         });
 
@@ -176,13 +127,11 @@ impl Clothe {
 
                     if col > 0 {
                         spring.links[6] = indice - 1 + cols; // Bottom left
-                        spring.rest_distance[6] = self.get_norm_distance(indice, indice - 1 + cols);
-                        // Bottom left
+                        spring.rest_distance[6] = self.get_norm_distance(indice, indice - 1 + cols); // Bottom left
                     }
                     if col < cols - 1 {
                         spring.links[4] = indice + 1 + cols; // Bottom right
-                        spring.rest_distance[4] = self.get_norm_distance(indice, indice + 1 + cols);
-                        // Bottom right
+                        spring.rest_distance[4] = self.get_norm_distance(indice, indice + 1 + cols); // Bottom right
                     }
                 }
 
@@ -200,26 +149,22 @@ impl Clothe {
                     // Right
                 }
 
-                // Add blend spring
+                // Add blend springs
                 if col > 1 {
                     spring.links[8] = indice - 2; // Blend left
-                    spring.rest_distance[8] = self.get_norm_distance(indice, indice - 2);
-                    // Blend left
+                    spring.rest_distance[8] = self.get_norm_distance(indice, indice - 2); // Blend left
                 }
                 if col < cols - 2 {
                     spring.links[9] = indice + 2; // Blend right
-                    spring.rest_distance[9] = self.get_norm_distance(indice, indice + 2);
-                    // Blend right
+                    spring.rest_distance[9] = self.get_norm_distance(indice, indice + 2); // Blend right
                 }
                 if row > 1 {
                     spring.links[10] = indice - 2 * cols; // Blend top
-                    spring.rest_distance[10] = self.get_norm_distance(indice, indice - 2 * cols);
-                    // Blend top
+                    spring.rest_distance[10] = self.get_norm_distance(indice, indice - 2 * cols); // Blend top
                 }
                 if row < rows - 2 {
                     spring.links[11] = indice + 2 * cols; // Blend bottom
-                    spring.rest_distance[11] = self.get_norm_distance(indice, indice + 2 * cols);
-                    // Blend bottom
+                    spring.rest_distance[11] = self.get_norm_distance(indice, indice + 2 * cols); // Blend bottom
                 }
 
                 self.springs[indice as usize] = spring;
