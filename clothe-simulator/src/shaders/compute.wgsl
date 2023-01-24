@@ -3,7 +3,7 @@ struct Vertex {
     normal: vec3<f32>,
     velocity: vec3<f32>,
     resultant: vec3<f32>,
-    tex_coords: vec4<f32>,
+    tex_coords: vec3<f32>,
 }
 
 struct Sphere {
@@ -53,9 +53,7 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     var spring = springs[param.x];
 
     // Reset resultant
-    vertices[param.x].resultant[0] = 0.0;
-    vertices[param.x].resultant[1] = 0.0;
-    vertices[param.x].resultant[2] = 0.0;
+    vertices[param.x].resultant = vec3(0.0);
 
     // Loop on every spring
     for (var i: i32 = 0; i < 12; i++) {
@@ -70,28 +68,23 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
         let spring_force = (vertex_link.position - vertex.position)*norm;
     
         // Calcul resistances
-        vertices[param.x].resultant[0] += spring_force[0] - vertices[param.x].velocity[0] * data.damping_factor;
-        vertices[param.x].resultant[1] += (data.gravity * clothe_data.mass) + spring_force[1] - vertices[param.x].velocity[1] * data.damping_factor;
-        vertices[param.x].resultant[2] += spring_force[2] - vertices[param.x].velocity[2] * data.damping_factor;
+        vertices[param.x].resultant += spring_force - vertices[param.x].velocity * data.damping_factor;
+        vertices[param.x].resultant[1] += data.gravity * clothe_data.mass;
     }
 
     // Add friction with the sphere
     if distance(sphere_vec, vertices[param.x].position) <= sphere.radius {
-        let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * normalize(vertices[param.x].normal);
+        let r_n = dot(vertices[param.x].resultant, vertices[param.x].normal) * vertices[param.x].normal;
         let r_t = vertices[param.x].resultant - r_n;
+
         let one_t = normalize(r_t);
 
         vertices[param.x].resultant += -min(length(r_t), sphere.friction_factor*length(r_n))*one_t;
     }
 
-    // New velocities
-    vertices[param.x].velocity[0] += vertices[param.x].resultant[0] * data.delta_time / clothe_data.mass;
-    vertices[param.x].velocity[1] += vertices[param.x].resultant[1] * data.delta_time / clothe_data.mass;
-    vertices[param.x].velocity[2] += vertices[param.x].resultant[2] * data.delta_time / clothe_data.mass;
-
-    vertices[param.x].position[0] += vertices[param.x].velocity[0] * data.delta_time;
-    vertices[param.x].position[1] += vertices[param.x].velocity[1] * data.delta_time;
-    vertices[param.x].position[2] += vertices[param.x].velocity[2] * data.delta_time;
+    // New velocities and positions
+    vertices[param.x].velocity += vertices[param.x].resultant * data.delta_time / clothe_data.mass;
+    vertices[param.x].position += vertices[param.x].velocity * data.delta_time;
 
     // Sphere collision
     if distance(sphere_vec, vertices[param.x].position) < sphere.radius {

@@ -3,7 +3,7 @@ struct Vertex {
     normal: vec3<f32>,
     velocity: vec3<f32>,
     resultant: vec3<f32>,
-    tex_coords: vec4<f32>,
+    tex_coords: vec3<f32>,
 }
 
 struct ClotheData {
@@ -34,9 +34,7 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     var spring = springs[param.x];
 
     // Reset normals
-    vertices[param.x].normal[0] = 0.0;
-    vertices[param.x].normal[1] = 0.0;
-    vertices[param.x].normal[2] = 0.0;
+    vertices[param.x].normal = vec3(0.0);
 
 
     // Calcul normal

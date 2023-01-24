@@ -7,10 +7,6 @@ struct CameraUniform {
 
 @group(1) @binding(0) var<uniform> matrices: CameraUniform;
 
-struct InstanceInput {
-    @location(5) translation: vec3<f32>,
-    @location(6) velocity: vec3<f32>,
-};
 
 struct VertexInput {
     @location(0) position: vec4<f32>,

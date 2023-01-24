@@ -34,7 +34,7 @@ const SPRING_CONSTANT: f32 = 1000.0;
 const GRAVITY: f32 = -9.81;
 const MASS: f32 = 0.5;
 const CLOTH_SIZE: f32 = 2.5;
-const NUMBER_SQUARES: u32 = 20;
+const NUMBER_SQUARES: u32 = 21;
 const DAMPING_FACTOR: f32 = 0.5;
 const CLOTHE_CENTER: &[f32; 3] = &[0.0, 2.0, 0.0]; // [x, y, z]
 
@@ -86,7 +86,7 @@ impl MyApp {
 
         // Configure the camera parameters
         let camera = Camera {
-            eye: (3.0, 0.0, 0.0).into(),
+            eye: (3.0, 1.0, 0.0).into(),
             target: (0.0, 0.0, 0.0).into(),
             up: cgmath::Vector3::unit_y(),
             aspect: context.get_aspect_ratio(),
