@@ -36,7 +36,6 @@ fn main(@builtin(global_invocation_id) param: vec3<u32>) {
     // Reset normals
     vertices[param.x].normal = vec3(0.0);
 
-
     // Calcul normal
     var i: u32 = 1u;
     var j: u32 = 0u;

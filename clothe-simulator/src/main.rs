@@ -24,19 +24,20 @@ const SPHERE: Sphere = Sphere {
     y: 0.0,
     z: 0.0,
     radius: 1.05,
-    friction_factor: 0.8,
+    friction_factor: 0.1,
 };
 
 // Parameters
 const WORKER_SIZE: u32 = 255;
 const SPHERE_ORDER: u32 = 3;
-const SPRING_CONSTANT: f32 = 1000.0;
+const SPRING_CONSTANT: f32 = 1200000.0;
 const GRAVITY: f32 = -9.81;
-const MASS: f32 = 0.5;
+const MASS: f32 = 1.0;
 const CLOTH_SIZE: f32 = 2.5;
-const NUMBER_SQUARES: u32 = 21;
-const DAMPING_FACTOR: f32 = 0.5;
+const NUMBER_SQUARES: u32 = 100;
+const DAMPING_FACTOR: f32 = 0.8;
 const CLOTHE_CENTER: &[f32; 3] = &[0.0, 2.0, 0.0]; // [x, y, z]
+const ITERATIONS: u32 = 150;
 
 // Function to calcul the number of workers to launch
 fn get_workers(nb: u32) -> u32 {
@@ -336,22 +337,17 @@ impl Application for MyApp {
         let compute_data = ComputeData {
             spring_contant: SPRING_CONSTANT,
             damping_factor: DAMPING_FACTOR,
-            gravity: GRAVITY * 0.2,
-            delta_time: delta_time,
+            gravity: GRAVITY,
+            delta_time: delta_time / ITERATIONS as f32,
         };
         context.update_buffer(&self.compute_data_buffer, &[compute_data]);
 
         let compute_nb: u32 = get_workers(self.clothe_data.nb_vertices);
         let mut computation = Computation::new(context);
+    
 
-        {
+        for _ in 0..ITERATIONS {
             let mut compute_pass = computation.begin_compute_pass();
-
-            // Normal pipeline
-            compute_pass.set_pipeline(&self.normal_pipeline);
-            compute_pass.set_bind_group(0, &self.normal_vertex_bind_group, &[]);
-            compute_pass.set_bind_group(1, &self.normal_bind_group, &[]);
-            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
 
             // Distance pipeline
             compute_pass.set_pipeline(&self.distance_pipeline);
@@ -363,6 +359,12 @@ impl Application for MyApp {
             compute_pass.set_pipeline(&self.compute_pipeline);
             compute_pass.set_bind_group(0, &self.compute_vertex_bind_group, &[]);
             compute_pass.set_bind_group(1, &self.compute_data_bind_group, &[]);
+            compute_pass.dispatch_workgroups(compute_nb, 1, 1);
+
+            // Normal pipeline
+            compute_pass.set_pipeline(&self.normal_pipeline);
+            compute_pass.set_bind_group(0, &self.normal_vertex_bind_group, &[]);
+            compute_pass.set_bind_group(1, &self.normal_bind_group, &[]);
             compute_pass.dispatch_workgroups(compute_nb, 1, 1);
         }
 
