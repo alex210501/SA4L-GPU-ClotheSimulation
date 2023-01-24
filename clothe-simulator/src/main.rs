@@ -12,8 +12,11 @@ use wgpu_bootstrap::{
     window::Window,
 };
 
-use clothe_simulator::{clothe::Clothe, node::Node};
-use clothe_simulator::{data_containers:: {Sphere, ClotheData, ComputeData}};
+use clothe_simulator::{
+    clothe::Clothe, 
+    node::Node, 
+    data_containers:: {Sphere, ClotheData, ComputeData}
+};
 
 // Sphere parameters
 const SPHERE: Sphere = Sphere {
@@ -26,6 +29,7 @@ const SPHERE: Sphere = Sphere {
 
 // Parameters
 const WORKER_SIZE: u32 = 255;
+const SPHERE_ORDER: u32 = 3;
 const SPRING_CONSTANT: f32 = 1000.0;
 const GRAVITY: f32 = -9.81;
 const MASS: f32 = 0.5;
@@ -99,7 +103,7 @@ impl MyApp {
             position: [SPHERE.x, SPHERE.y, SPHERE.z],
             velocity: [0.0, 0.0, 0.0],
         };
-        let (vertices, indices) = icosphere(1);
+        let (vertices, indices) = icosphere(SPHERE_ORDER);
         let sphere_pipeline = context.create_render_pipeline(
             "Sphere Render Pipeline",
             include_str!("shaders/sphere_shader.wgsl"),
@@ -320,7 +324,7 @@ impl Application for MyApp {
             render_pass.set_vertex_buffer(1, self.particle_buffer.slice(..));
             render_pass.set_index_buffer(self.sphere_index_buffer.slice(..),
                 wgpu::IndexFormat::Uint16,);
-            render_pass.draw_indexed(0..(icosphere(1).1.as_slice().len() as u32), 0, 0..1);
+            render_pass.draw_indexed(0..(icosphere(SPHERE_ORDER).1.as_slice().len() as u32), 0, 0..1);
         }
 
         frame.present();
